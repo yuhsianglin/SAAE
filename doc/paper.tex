@@ -169,13 +169,14 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 \section{Adversarial autoencoder for zero-shot learning}
 
-	We propose two architectures that make use of adversarial autoencoders for the zero-shot learning tasks. In one of them we draw positive samples from the prior that is a Gaussian noise, and explicitly require the code to match the text representation. In this case, the prior serves as a regularizer. In the other of them, we directly use the text representation as positive samples drawn from some distribution that describes a class of data, and the code is trained by the adversarial net to match the text representation. In this case, the prior guides the generator (the encoder) to learn the code that is close to the semantic representation of text.
+	We propose two architectures that make use of adversarial autoencoders for the zero-shot learning tasks. In one of them we draw positive samples from the prior that is a Gaussian noise, and explicitly require the encoding $\bb{h}^c$ to match the text representation $\bb{t}^c$. In this case, the prior serves as a regularizer, which is presented in Sec.~\ref{subsec:NoisePrior}. In the other of them, we directly use the text representation as positive samples drawn from some distribution that describes a class of data, and the code is trained by the adversarial net to match the text representation. In this case, the prior guides the generator (the encoder) to learn the code that is close to the semantic representation of text, which is presented in Sec.~\ref{subsec:TextPrior}.
 
 
 
 % ----------------------------------------------------
 
 \subsection{Prior as regularizer}
+\label{subsec:NoisePrior}
 	
 	The architecture in Figure \ref{fig:NoisePrior} has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
 	\begin{align}
@@ -187,11 +188,21 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 % ---------------------------------------------------------
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width = 10 cm]{figNoisePrior}
 \caption{Adversarial autoencoder with noise prior and explicit matching to the text representation.}
 \label{fig:NoisePrior}
+\end{figure}
+
+% ---------------------------------------------------------
+% ---------------------------------------------------------
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width = 10 cm]{figTextPrior}
+\caption{Adversarial autoencoder with text representations as positive samples drawn from some underlying prior.}
+\label{fig:TextPrior}
 \end{figure}
 
 % ---------------------------------------------------------
@@ -200,10 +211,10 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 
 
-
 % ----------------------------------------------------
 
 \subsection{Prior as guide}
+\label{subsec:TextPrior}
 	
 	In Figure \ref{fig:TextPrior} we show the adversarial autoencoder that takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form of the standard adversarial autoencoder,
 	\begin{align}
@@ -213,16 +224,7 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 
 
-% ---------------------------------------------------------
 
-\begin{figure}[h]
-\centering
-\includegraphics[width = 10 cm]{figTextPrior}
-\caption{Adversarial autoencoder with text representations as positive samples drawn from some underlying prior.}
-\label{fig:TextPrior}
-\end{figure}
-
-% ---------------------------------------------------------
 
 
 
@@ -279,23 +281,42 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 
 
+\section{Dataset Description and Baseline Models}
+
+The dataset we want to use for this project is the Caltech-UCSD Birds 200-2011 data\cite{wah2011caltech}. There are 200 categories of birds. The number of images is 11,788, and the image dimension is 500 $\times$ [300--500] $\times$ 3. Each class consists of between 40 and 80 images. 
+
+Here we also list the baseline models we want to compare out result with. They are Semantic Autoencoder(SAE)\cite{kodirov2017semantic}, Joint Latent Semantic Embedding(JLSE)\cite{zhang2016zero}, and Synthesized classifiers(Sync)\cite{changpinyo2016synthesized}. According to \cite{kodirov2017semantic}, the performance of the baseline models are reported as follows:
+\begin{table}[!htb]
+ \centering
+ \begin{tabular}{|l|l|}
+  \hline
+  Model & Results \\
+  \hline
+  SAE\cite{kodirov2017semantic} & 61.4 \\
+  \hline
+  JLSE\cite{zhang2016zero} & 41.8 \\
+  \hline
+  Sync\cite{changpinyo2016synthesized} & 54.4 \\
+  \bottomrule
+ \end{tabular}
+ \caption{Performance of baseline models.}
+\end{table}
+
+
+
+
+
+
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-\section{Data}
+%\section{Data}
 
-	We use two datasets: The Caltech-UCSD Birds 200 (2010) dataset \cite{Welinder2010}, and the Oxford VGG 102 category flower dataset \cite{Nilsback2008}. The Birds dataset has class number 200, feature dimension 500 $\times$ [300--500] $\times$ 3, and the size of the dataset is 6033. The bird images belonging to 200 species. Each class consists of between 20 and 40 images, with total of 6033 color images in jpeg format.
+%	We use two datasets: The Caltech-UCSD Birds 200 (2010) dataset \cite{Welinder2010}, and the Oxford VGG 102 category flower dataset \cite{Nilsback2008}. The Birds dataset has class number 200, feature dimension 500 $\times$ [300--500] $\times$ 3, and the size of the dataset is 6033. The bird images belonging to 200 species. Each class consists of between 20 and 40 images, with total of 6033 color images in jpeg format.
 	
-	The Oxford VGG 102 category flower dataset has class number 102, feature dimension [500--600] $\times$ 500 $\times$ 3, and the size of the dataset is 8189. The flower images belonging to 102 categories. Each class consists of between 40 and 258 images, with total of 8189 color images in jpeg format.
+%	The Oxford VGG 102 category flower dataset has class number 102, feature dimension [500--600] $\times$ 500 $\times$ 3, and the size of the dataset is 8189. The flower images belonging to 102 categories. Each class consists of between 40 and 258 images, with total of 8189 color images in jpeg format.
 
 
-
-% ----------------------------------------------------
-% ----------------------------------------------------
-
-\section{Experiments}
-
-	Preliminary results.
 
 
 
@@ -303,7 +324,7 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-\section{Discussion}
+%\section{Discussion}
 
 % 	The architecture proposed in this work can also be applied to image generation from text. By applying the inverse domain transfer function to a given text, $T^{-1}(\bb{t})$ can be taken as the code $\bb{h}$, which can then be fed into the decoder to obtain the image $\bb{x}$.
 
