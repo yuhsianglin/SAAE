@@ -23,6 +23,7 @@
 
 \usepackage{amsmath}	% for \begin{align}
 \usepackage{graphicx}	% for \includegraphics{filename}
+\usepackage{subcaption}	% for \begin{subfigure}[t]{0.5\textwidth}
 
 \newcommand{\bb}[1]{\boldsymbol{#1}}
 
@@ -178,7 +179,7 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 \subsection{Prior as regularizer}
 \label{subsec:NoisePrior}
 	
-	The architecture in Figure \ref{fig:NoisePrior} has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
+	The architecture in Figure \ref{fig:Architecture} (a) has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
 	\begin{align}
 		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
 	\end{align}
@@ -188,26 +189,22 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 % ---------------------------------------------------------
 
-\begin{figure}[!htb]
-\centering
-\includegraphics[width = 10 cm]{figNoisePrior}
-\caption{Adversarial autoencoder with noise prior and explicit matching to the text representation.}
-\label{fig:NoisePrior}
-\end{figure}
-
-% ---------------------------------------------------------
-% ---------------------------------------------------------
-
-\begin{figure}[!htb]
-\centering
-\includegraphics[width = 10 cm]{figTextPrior}
-\caption{Adversarial autoencoder with text representations as positive samples drawn from some underlying prior.}
-\label{fig:TextPrior}
-\end{figure}
-
-% ---------------------------------------------------------
-
-
+\begin{figure*}[t!]
+    \centering
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \includegraphics[height=1.65in]{figNoisePrior}
+        \caption{}
+    \end{subfigure}%
+    ~ 
+    \begin{subfigure}[t]{0.5\textwidth}
+        \centering
+        \includegraphics[height=1.65in]{figTextPrior}
+        \caption{}
+    \end{subfigure}
+    \caption{Adversarial autoencoders with (a) Gaussian prior and explicit matching to the text representation, and (b) text representations as positive samples drawn from some underlying prior of text distribution.}
+    \label{fig:Architecture}
+\end{figure*}
 
 
 
@@ -216,7 +213,7 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 \subsection{Prior as guide}
 \label{subsec:TextPrior}
 	
-	In Figure \ref{fig:TextPrior} we show the adversarial autoencoder that takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form of the standard adversarial autoencoder,
+	In Figure \ref{fig:Architecture} (b) we show the adversarial autoencoder that takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form of the standard adversarial autoencoder,
 	\begin{align}
 		\min_{G} \max_D E_{\bb{t} \sim r(\bb{t})}\left[\; \log D(\bb{t}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) \;\right],
 	\end{align}
