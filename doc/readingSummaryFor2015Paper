@@ -1,0 +1,23 @@
+1. Kernel methods
+    Learn a dot-product type classifier instead of simple linear form (c* = wt*). 
+    What they have done is again first learn the classifier based on text. 
+    I think we could try directly learn the inner-product version:
+        f(x*, t*) instead of c*=wt* and then blahblah. 
+
+2. Regressor method is easy to understand, for example Gaussian process. However it faces some challenges, for example sparsity. 
+
+3. Knowledge transfer model. 
+
+4. The best model is a combination of some models. 
+
+5. Textual feature extraction:
+    - text feature. They are using tf-idf, probably we can use 2-grams? 
+    - dimension reduction with Clustered Latent Semantic Indexing
+    - no idea why they abandon wordnet. Need more related work. 
+    
+6. Visual feature extraction: 
+    - Classemes features: an object detection tool 
+    - semantic feature extraction? 
+    
+7. related work
+    Unifying visual-semantic embeddings with multimodal neural language models 

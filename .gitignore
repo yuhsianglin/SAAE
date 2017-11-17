@@ -1,0 +1,9 @@
+# latex generated files
+*.aux
+*.log
+*.out
+*.synctex.gz
+
+
+proposal.pdf
+paper.pdf

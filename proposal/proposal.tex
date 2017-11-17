@@ -1,0 +1,162 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2016
+%
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2016}
+
+% \usepackage{nips_2016}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+\usepackage[final]{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\title{\vspace{-4mm} 10707 Project Proposal \vspace{-4mm}}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+\author{
+	Shihui Li, Yu-Hsiang Lin, Kangyan Zhou
+		%\thanks{Use footnote for providing further information about author (webpage, alternative address)---\emph{not} for acknowledging funding agencies.}
+		\\
+	Language Technologies Institute\\
+	Carnegie Mellon University\\
+	Pittsburgh, PA 15213 \\
+	\texttt{\{shihuil,yuhsianl,kangyanz\}@andrew.cmu.edu} \\
+	%% examples of more authors
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+	%% \And
+	%% Coauthor \\
+	%% Affiliation \\
+	%% Address \\
+	%% \texttt{email} \\
+}
+
+\begin{document}
+% \nipsfinalcopy is no longer used
+
+\maketitle
+
+%\begin{abstract}
+%Abstract.
+%\end{abstract}
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+\vspace{-10mm}
+\section{Problem Statement}
+\vspace{-3mm}
+Transfer learning has been a hot research topic in the field. It simulates how people learn things: when people see an unfamiliar object, we would like to use our existing knowledge and try to evaluate the new object. In this project we plan to explore how to develop an effective transfer learning algorithm, with focus on zero-shot learning and its combination with several popular deep learning methods, such as convolutional neural network, attention models, and Adversarial training, to detect unseen objects only with text description.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+\vspace{-3mm}
+\section{Motivation}
+\vspace{-3mm}
+Zero-shot learning consists in learning how to recognize new concepts by just having a description of them. State-of-the-art methods for zero-shot recognition formulate learning as a embedding problem of images and side information like text \cite{Elhoseiny2013}. We propose a model that can classify unseen categories from their textual description. Inspired by the fact that there is little supervision on text data, certain noise-cancelling techniques could be applied to improve the performance of our model.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+\vspace{-3mm}
+\section{Proposed Approach}
+\vspace{-3mm}
+\subsection{Convolutional Neural Network}
+\vspace{-3mm}
+	Convolutional neural network has shown its powerful ability in the image feature extraction task. We plan to use VggNet \cite{Simonyan2014} as our pre-trained model, and fine tune it with images in the training set, and then use the output of last convolution layer as the vector representation of the image.
+\vspace{-3mm}
+\subsection{Text Embedding}
+\vspace{-3mm}
+	There are several existing different techniques for text embedding. We plan to try fasttext \cite{Bojanowski2016} for our task. As an improvement based on word2vec \cite{Mikolov2013}, fasttext is a relatively new method that can reliably model different forms of the same word (e.g.~single/plural form) by referring the final representation as sum of character n-gram.
+\vspace{-3mm}
+\subsection{Soft Attention}
+\vspace{-3mm}
+	Attention is powerful technique to align different input modalities. It is commonly used in image captioning and visual question answering, for the purpose of allowing the algorithm to attend the correct part of image given text. In our scenario we want to try soft attention to use text to focus on specific part of the image. We would like to use the similar structure for the attention part as in \cite{You2016}.
+\vspace{-3mm}
+\subsection{Adversarial}
+\vspace{-3mm}
+	Adversarial training increases robustness to attacks by injecting adversarial examples into training data. However, it seems inappropriate to add adversarial noise to sparse high-dimensional inputs such as one-hot word representations. Therefore, we want to apply perturbations to the word embeddings instead to improve the ability of generalization of this model.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+\vspace{-3mm}
+\section{Datasets}
+\vspace{-3mm}
+\subsection{Caltech-UCSD Birds 200 (2010)}
+\vspace{-3mm}
+	Class number: 200. Feature dimension: 500 $\times$ [300--500] $\times$ 3. Size of dataset: 6033.
+	
+	Bird images belonging to 200 species \cite{Welinder2010}. Each class consists of between 20 and 40 images, with total of 6033 color images in jpeg format.
+
+
+\vspace{-3mm}
+\subsection{Oxford VGG 102 category flower dataset}
+\vspace{-3mm}
+	Class number: 102. Feature dimension: [500--600] $\times$ 500 $\times$ 3. Size of dataset: 8189.
+
+	Flower images belonging to 102 categories \cite{Nilsback2008}. Each class consists of between 40 and 258 images, with total of 8189 color images in jpeg format.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+
+%\subsubsection*{Acknowledgments}
+
+%Use unnumbered third level headings for the acknowledgments. All acknowledgments go at the end of the paper. Do not include acknowledgments in the anonymized submission, only in the final paper.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+
+\bibliographystyle{plain}
+\bibliography{MachineLearning}
+
+
+
+%\section*{References}
+
+%References follow the acknowledgments. Use unnumbered first-level heading for the references. Any choice of citation style is acceptable as long as you are consistent. It is permissible to reduce the font size to \verb+small+ (9 point) when listing the references. {\bf Remember that you can use a ninth page as long as it contains \emph{only} cited references.}
+%\medskip
+
+%\small
+
+%[1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms for connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and T.K.\ Leen (eds.), {\it Advances in Neural Information Processing Systems 7}, pp.\ 609--616. Cambridge, MA: MIT Press.
+
+%[2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS: Exploring Realistic Neural Models with the GEneral NEural SImulation System.}  New York: TELOS/Springer--Verlag.
+
+%[3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of learning and recall at excitatory recurrent synapses and cholinergic modulation in rat hippocampal region CA3. {\it Journal of Neuroscience} {\bf 15}(7):5249-5262.
+
+
+
+\end{document}
