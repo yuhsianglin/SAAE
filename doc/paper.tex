@@ -158,7 +158,9 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 \section{Zero-shot learning task}
 
-	The problem we are going to solve is\dots
+	We aim to solve the zero-shot learning problem of classifying images of unseen classes. Given the training images $\bb{x}^c$ and their corresponding text description documents $\bb{t}^c$ for $N_s$ seen classes $c$, we learn the semantic encodings $\bb{h}^c$ of the images. The learning goal is to learn the encodings $\bb{h}^c$ for a class that are close to their corresponding text document representation for this class. The encodings $\bb{h}^{c_1}$ and $\bb{h}^{c_2}$ from two different classes should bear some separable differences.
+	
+	During the test time, we are given images $\bb{x}^c$ of $N_{us}$ unseen classes $c$ and also their text description documents $\bb{t}^c$, but without the prior knowledge of the correspondence between the images and the text documents. Our task is to predict the corresponding text document given an image.
 
 
 
