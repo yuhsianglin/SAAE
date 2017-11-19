@@ -183,9 +183,9 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 	\begin{align}
 		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
 	\end{align}
-	
-	Similar architecture has been proposed in \cite{kodirov2017semantic}, in which the explicit matching to the text representation was used to learn the semantic autoencoder for the image input. The difference in our architecture is that we use a adversarial net to regularize the matching to the text representation.
-	
+	The computational details are given in the Supplementary.
+
+
 
 % ---------------------------------------------------------
 
@@ -205,6 +205,12 @@ Apart from handcrafting attributes, another scheme is to directly use the online
     \caption{Adversarial autoencoders with (a) Gaussian prior and explicit matching to the text representation, and (b) text representations as positive samples drawn from some underlying prior of text distribution.}
     \label{fig:Architecture}
 \end{figure*}
+
+% ----------------------------------------------------
+
+
+
+	Similar architecture has been proposed in \cite{kodirov2017semantic}, in which the explicit matching to the text representation was used to learn the semantic autoencoder for the image input. The difference in our architecture is that we use a adversarial net to regularize the matching to the text representation.
 
 
 
@@ -324,7 +330,6 @@ Here we also list the baseline models we want to compare out result with. They a
 %\section{Discussion}
 
 % 	The architecture proposed in this work can also be applied to image generation from text. By applying the inverse domain transfer function to a given text, $T^{-1}(\bb{t})$ can be taken as the code $\bb{h}$, which can then be fed into the decoder to obtain the image $\bb{x}$.
-
 
 
 
