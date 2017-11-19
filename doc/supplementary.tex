@@ -78,27 +78,23 @@
 
 \section{Adversarial autoencoder with the prior as the regularizer}
 
-	Given an input image representation $\bb{x}^c \in R^{d_x}$, the encoder encodes it into $\bb{h}^c \in R^{d_h}$ by
+	Given an input image representation $\bb{x} \in R^{d_x}$, the encoder encodes it into $\bb{h} \in R^{d_h}$ by
 	\begin{align}
-		\bb{h}^c = \sigma(W^e \bb{x}^c + \bb{b}^e),
+		\bb{h} = \sigma(W^e \bb{x} + \bb{b}^e),
 	\end{align}
 	where $W^e \in R^{d_h \times d_x}$, $\bb{b}^e \in R^{d_h}$, and $\sigma(\cdot)$ is the sigmoid function,
 	\begin{align}
 		\sigma(s) = \frac{1}{1 + e^{-s}},
 	\end{align}
-	applied element-wisely. Note that the hidden representation space $R^{d_h}$ is also the space of the text representation; that is, $\bb{t}^c \in R^{d_h}$. The decoder computes
+	applied element-wisely. Note that the hidden representation space $R^{d_h}$ is also the space of the text representation; that is, $\bb{t} \in R^{d_h}$. The decoder computes
 	\begin{align}
-		\tilde{\bb{x}}^c = \sigma(W^d \bb{h}^c + \bb{b}^d),
+		\tilde{\bb{x}} = \sigma(W^d \bb{h} + \bb{b}^d),
 	\end{align}
-	where $W^d \in R^{d_x \times d_h}$ and $\bb{b}^d \in R^{d_x}$, such that the reconstruction cross entropy,
-	\begin{align}
-		S = -\bb{x}^c \odot \log \tilde{\bb{x}}^c,
-	\end{align}
-	is minimized. Here $\odot$ denotes the element-wise product, and the log function is applied element-wisely.
+	where $W^d \in R^{d_x \times d_h}$ and $\bb{b}^d \in R^{d_x}$.
 	
 	The generator of the adversarial net is the encoder of the autoencoder; that is,
 	\begin{align}
-		G(\bb{x}^c) = \sigma(W^e \bb{x}^c + \bb{b}^e) = \bb{h}^c.
+		G(\bb{x}) = \sigma(W^e \bb{x} + \bb{b}^e) = \bb{h}.
 	\end{align}
 	The positive samples are drawn from the Gaussian prior,
 	\begin{align}
@@ -116,21 +112,17 @@
 	\end{align}
 	which is the estimation of the probability that $\bb{z}$ is drawn from the prior.
 	
-	For the autoencoder and the generator of the adversarial net, the loss function is the empirical risk,
+	For the autoencoder and the generator of the adversarial net, the loss function for a mini-batch of instances, $S$, is the empirical risk,
 	\begin{align}
-		f_g = \frac{1}{m} \sum_{c = 1}^{N_s} \sum_{i = 1}^{m_c} \left\{ -\bb{x}^{c, (i)} \odot \log \tilde{\bb{x}}^{c, (i)} + \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right] + || \bb{h}^{c, (i)} - \bb{t}^c ||_2^2 \right\},
+		f_g = \frac{1}{|S|} \sum_{i \in S} \left\{ -\bb{x}^{(i)} \odot \log \tilde{\bb{x}}^{(i)} + \log\left[ 1 - D( \bb{h}^{(i)} ) \right] + || \bb{h}^{(i)} - \bb{t}^{c_i} ||_2^2 \right\},
 	\end{align}
-	where
-	\begin{align}
-		m = \sum_{c = 1}^{N_s} m_c
-	\end{align}
-	is the total number of training images. Here we assume there is only one text $\bb{t}^c$ for each class.
+	where $\odot$ denotes the element-wise product, the log function is applied element-wisely, and $c_i$ is the class of the instance $x^{(i)}$. Here we assume that there is only one text $\bb{t}^c$ for each class $c$.
 
-	For the discriminator of the adversarial net, the loss function is the empirical risk,
+	For the discriminator of the adversarial net, the loss function is
 	\begin{align}
-		f_d = -\frac{1}{m} \sum_{j = 1}^{m} \log D( \bb{z}^{(j)} ) - \frac{1}{m} \sum_{c = 1}^{N_s} \sum_{i = 1}^{m_c} \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right],
+		f_d = -\frac{1}{|S|} \sum_{j = 1}^{|S|} \log D( \bb{z}^{(j)} ) - \frac{1}{|S|} \sum_{i \in S} \log\left[ 1 - D( \bb{h}^{(i)} ) \right],
 	\end{align}
-	where $\bb{z}^{(j)}$ are $m$ samples drawn from the prior distribution $\mathcal{N}(0, \lambda^2)$.
+	where $\bb{z}^{(j)}$ are $|S|$ samples drawn from the prior distribution $\mathcal{N}(0, \lambda^2)$.
 	
 	The optimization problem for the autoencoder and the generator is
 	\begin{align}
@@ -142,14 +134,6 @@
 	\end{align}
 	while the parameters of the generator ($W^e, \bb{b}^e, W^d, \bb{b}^d$) are held constant.
 
-
-
-% ----------------------------------------------------
-% ----------------------------------------------------
-
-%\subsubsection*{Acknowledgments}
-
-%Use unnumbered third level headings for the acknowledgments. All acknowledgments go at the end of the paper. Do not include acknowledgments in the anonymized submission, only in the final paper.
 
 
 
