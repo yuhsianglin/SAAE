@@ -94,7 +94,7 @@
 	\begin{align}
 		S = -\bb{x}^c \odot \log \tilde{\bb{x}}^c,
 	\end{align}
-	where the log being applied element-wisely, is to be minimized.
+	is minimized. Here $\odot$ denotes the element-wise product, and the log function is applied element-wisely.
 	
 	The generator of the adversarial net is the encoder of the autoencoder; that is,
 	\begin{align}
@@ -118,26 +118,29 @@
 	
 	For the autoencoder and the generator of the adversarial net, the loss function is the empirical risk,
 	\begin{align}
-		f_e = \frac{1}{\ell} \sum_{c = 1}^{N_s} \sum_{i = 1}^{\ell_c} \left\{ -\bb{x}^{c, (i)} \odot \log \tilde{\bb{x}}^{c, (i)} + \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right] + || \bb{h}^{c, (i)} - \bb{t}^c ||_2^2 \right\},
+		f_g = \frac{1}{m} \sum_{c = 1}^{N_s} \sum_{i = 1}^{m_c} \left\{ -\bb{x}^{c, (i)} \odot \log \tilde{\bb{x}}^{c, (i)} + \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right] + || \bb{h}^{c, (i)} - \bb{t}^c ||_2^2 \right\},
 	\end{align}
 	where
 	\begin{align}
-		\ell = \sum_{c = 1}^{N_s} \ell_c
+		m = \sum_{c = 1}^{N_s} m_c
 	\end{align}
 	is the total number of training images. Here we assume there is only one text $\bb{t}^c$ for each class.
 
-
-
-
-
-	where the parameters of the discriminator is held constant.
-	
-	
-	
-	
+	For the discriminator of the adversarial net, the loss function is the empirical risk,
 	\begin{align}
-		f = \frac{1}{\ell} \sum_{i = 1}^{\ell} \log z^{2, (i)}
+		f_d = -\frac{1}{m} \sum_{j = 1}^{m} \log D( \bb{z}^{(j)} ) - \frac{1}{m} \sum_{c = 1}^{N_s} \sum_{i = 1}^{m_c} \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right],
 	\end{align}
+	where $\bb{z}^{(j)}$ are $m$ samples drawn from the prior distribution $\mathcal{N}(0, \lambda^2)$.
+	
+	The optimization problem for the autoencoder and the generator is
+	\begin{align}
+		\min_{W^e, \bb{b}^e, W^d, \bb{b}^d} \; f_g,
+	\end{align}
+	while the parameters of the discriminator ($W^1, \bb{b}^1, \bb{w}^2, b^2$) are held constant. The optimization problem for the discriminator is
+	\begin{align}
+		\min_{W^1, \bb{b}^1, \bb{w}^2, b^2} \; f_d,
+	\end{align}
+	while the parameters of the generator ($W^e, \bb{b}^e, W^d, \bb{b}^d$) are held constant.
 
 
 
