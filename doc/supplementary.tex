@@ -106,7 +106,37 @@
 	\end{align}
 	where $\bb{z} \in R^{d_h}$.	We use a fully connected neural network with a single hidden layer as the discriminator. Given an input $\bb{z} \in R^{d_h}$, it computes
 	\begin{align}
-		\bb{z} \sim \mathcal{N}(0, \lambda^2).
+		\bb{z}^1 &= \sigma( W^1 \bb{z} + \bb{b}^1 ), \\
+		%
+		z^2 &= \sigma( (\bb{w}^2)^{\top} \bb{z}^1 + b^2 ),
+	\end{align}
+	where $\bb{z}^1 \in R^{d_1}$, $W^1 \in R^{d_1 \times d_h}$, $\bb{b}^1 \in R^{d_1}$, $\bb{w}^2 \in R^{d_1}$, and $b^2$ and $z^2$ are scalars. The discriminator returns
+	\begin{align}
+		D(\bb{z}) = z^2,
+	\end{align}
+	which is the estimation of the probability that $\bb{z}$ is drawn from the prior.
+	
+	For the autoencoder and the generator of the adversarial net, the loss function is the empirical risk,
+	\begin{align}
+		f_e = \frac{1}{\ell} \sum_{c = 1}^{N_s} \sum_{i = 1}^{\ell_c} \left\{ -\bb{x}^{c, (i)} \odot \log \tilde{\bb{x}}^{c, (i)} + \log\left[ 1 - D( \bb{h}^{c, (i)} ) \right] + || \bb{h}^{c, (i)} - \bb{t}^c ||_2^2 \right\},
+	\end{align}
+	where
+	\begin{align}
+		\ell = \sum_{c = 1}^{N_s} \ell_c
+	\end{align}
+	is the total number of training images. Here we assume there is only one text $\bb{t}^c$ for each class.
+
+
+
+
+
+	where the parameters of the discriminator is held constant.
+	
+	
+	
+	
+	\begin{align}
+		f = \frac{1}{\ell} \sum_{i = 1}^{\ell} \log z^{2, (i)}
 	\end{align}
 
 
