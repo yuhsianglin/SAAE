@@ -7,3 +7,7 @@
 proposal.pdf
 paper.pdf
 supplementary.pdf
+
+*.pyc
+log*.*
+
