@@ -59,6 +59,9 @@ class dataset:
 		elif self.dataset_name == 'test':
 			X_used = self.test_X
 			batch_size_spec = self.batch_size_test
+		elif self.dataset_name == 'train_init':
+			X_used = self.train_X
+			batch_size_spec = -1
 
 		instance_num = X_used.shape[0]
 
@@ -70,7 +73,9 @@ class dataset:
 		# Size of the last mini-batch
 		self.remaining_batch_size = instance_num - ( self.batch_num - 1 ) * batch_size_spec
 
-		if self.remaining_batch_size < batch_size_spec:
+		if batch_size_spec == instance_num:
+			self.index_matrix = np.array(range(instance_num))
+		elif self.remaining_batch_size < batch_size_spec:
 			self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
 		else:
 			self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
@@ -89,7 +94,7 @@ class dataset:
 			index_vector = self.index_matrix[self.batch_counter, :]
 			self.current_batch_size = self.index_matrix.shape[1]
 
-		if self.dataset_name == 'train':
+		if self.dataset_name == 'train' or self.dataset_name == 'train_init':
 			output_X = self.train_X[index_vector, :]
 			output_Y = self.train_Y[index_vector, :]
 		elif self.dataset_name == 'val':

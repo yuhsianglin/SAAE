@@ -9,15 +9,15 @@ import dataset
 import autoencoder
 
 
-def main():
+def main(_):
 	input_dim = 784
-	hid_dim = 4
+	hid_dim = 100
 
-	lrn_rate = 0.01
-	momentum = 0
-	batch_size_train = 64
-	epoch_max = 10
-	
+	lrn_rate = 0.02
+	momentum = 0.9
+	batch_size_train = 16
+	epoch_max = 100
+
 	train_size = 3000
 	#reg_lambda = 1.0 / train_size
 	reg_lambda = 0
@@ -25,13 +25,13 @@ def main():
 	# Redundant for autoencoder
 	class_num = 10
 
-	train_file_name = '../../hw1_data/digitstiny.txt'
-	val_file_name = '../../hw1_data/digitstiny.txt'
-	test_file_name = '../../hw1_data/digitstiny.txt'
+	train_file_name = '../../hw1_data/digitstrain.txt'
+	val_file_name = '../../hw1_data/digitsvalid.txt'
+	test_file_name = '../../hw1_data/digitstest.txt'
 
 	log_file_name = './log/log_test_01.txt'
 
-	ae_machine = autoencoder(input_dim, hid_dim, class_num, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name)
+	ae_machine = autoencoder.autoencoder(input_dim, hid_dim, class_num, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name)
 
 	ae_machine.train()
 

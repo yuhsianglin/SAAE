@@ -30,7 +30,7 @@ class autoencoder:
 		rng1 = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
 		W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng1, maxval = rng1 ) )
 		b_e = tf.Variable(tf.zeros([self.hid_dim]))
-		H = tf.sigmoid( tf.matmul(X, W) + b_e )
+		H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
 		return [H, W_e]
 
 
@@ -57,10 +57,7 @@ class autoencoder:
 		return loss
 
 
-
 	def train(self):
-		log_file = open(self.log_file_name, 'w+')
-
 		#with self.graph.as_default():
 		X = tf.placeholder( tf.float32, [None, self.input_dim] )
 		#Y = tf.placeholder( tf.float32, [None, self.class_num] )
@@ -75,11 +72,31 @@ class autoencoder:
 		sess = tf.Session()
 		sess.run( tf.global_variables_initializer() )
 
+		log_file = open(self.log_file_name, 'w+')
+
+		# Initial train loss, full-batch for train
+		self.data.initialize_batch('train_init')
+		X_full, Y_full, current_batch_size, batch_counter = self.data.next_batch()
+		feed_dict = { X: X_full }
+		train_loss_got = sess.run(loss, feed_dict = feed_dict)
+
+		# Use full-batch for val
+		self.data.initialize_batch('val')
+		X_val_full, Y_val_full, current_batch_size, batch_counter = self.data.next_batch()
+		feed_dict = { X: X_val_full }
+		val_loss_got = sess.run(loss, feed_dict = feed_dict)
+
+		log_string = '%d\t%f\t%f\t%f\n' % (0, train_loss_got, val_loss_got, 0.0)
+		print_string = '%d\t%f\t%f\t%f' % (0, train_loss_got, val_loss_got, 0.0)
+		log_file.write(log_string)
+		print(print_string)
+
+		total_time_begin = time.time()
 		for epoch in range(self.epoch_max):
 			time_begin = time.time()
 
-			data.initialize_batch('train')
-			while data.has_next_batch():
+			self.data.initialize_batch('train')
+			while self.data.has_next_batch():
 				X_batch, Y_batch, current_batch_size, batch_counter = self.data.next_batch()
 				feed_dict = { X: X_batch }
 				_, train_loss_got = sess.run([train_step, loss], feed_dict = feed_dict)
@@ -88,24 +105,26 @@ class autoencoder:
 			time_end = time.time()
 			time_epoch = time_end - time_begin
 
-
-			'''
 			# Use full-batch for val
-			data.initialize_batch('val')
+			self.data.initialize_batch('val')
 			X_val_full, Y_val_full, current_batch_size, batch_counter = self.data.next_batch()
-			feed_dict = { X: X_val_full, Y: Y_val_full }
-			val_loss_got, val_accuracy_got = sess.run([loss, accuracy], feed_dict = feed_dict)
+			feed_dict = { X: X_val_full }
+			val_loss_got = sess.run(loss, feed_dict = feed_dict)
 
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_loss_got, val_loss_got, train_accuracy_got, val_accuracy_got, time_epoch)
-			print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_loss_got, val_loss_got, train_accuracy_got, val_accuracy_got, time_epoch)
-			'''
-
-
-			log_string = '%d\t%f\t%f\n' % (epoch + 1, train_loss_got, time_epoch)
-			print_string = '%d\t%f\t%f' % (epoch + 1, train_loss_got, time_epoch)
-
+			log_string = '%d\t%f\t%f\t%f\n' % (epoch + 1, train_loss_got, val_loss_got, time_epoch)
+			print_string = '%d\t%f\t%f\t%f' % (epoch + 1, train_loss_got, val_loss_got, time_epoch)
 			log_file.write(log_string)
 			print(print_string)
 		# End of all epochs
-
+		total_time_end = time.time()
+		total_time = total_time_end - total_time_begin
 		log_file.close()
+
+		# Use full-batch for test
+		self.data.initialize_batch('test')
+		X_test_full, Y_test_full, current_batch_size, batch_counter = self.data.next_batch()
+		feed_dict = { X: X_test_full }
+		test_loss_got = sess.run(loss, feed_dict = feed_dict)
+
+		print_string = 'Total epoch = %d, test loss = %f, total time = %f' % (epoch + 1, test_loss_got, total_time)
+		print(print_string)
