@@ -142,8 +142,6 @@ class aae(object):
 			while self.data.has_next_batch():
 				X_batch, Y_batch, current_batch_size, batch_counter = self.data.next_batch()
 				Z_batch, _, _, _ = self.gaus_sample.next_batch()
-				print(Z_batch.shape)
-				print(X_batch.shape)
 				feed_dict = { X: X_batch, Z: Z_batch }
 				_, train_gen_loss_got = sess.run([train_gen_step, gen_loss], feed_dict = feed_dict)
 				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
