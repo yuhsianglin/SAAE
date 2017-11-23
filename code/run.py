@@ -6,12 +6,14 @@ import math
 import time
 import tensorflow as tf
 import dataset
-import autoencoder
+import aae
 
 
 def main(_):
 	input_dim = 784
 	hid_dim = 100
+
+	d1 = 100
 
 	lrn_rate = 0.02
 	momentum = 0.9
@@ -31,9 +33,13 @@ def main(_):
 
 	log_file_name = './log/log_test_01.txt'
 
-	ae_machine = autoencoder.autoencoder(input_dim, hid_dim, class_num, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name)
+	gaus_train_file_name = './gaus_sample_train.txt'
+	gaus_val_file_name = './gaus_sample_valid.txt'
+	gaus_test_file_name = './gaus_sample_test.txt'
 
-	ae_machine.train()
+	aae_machine = aae.aae(input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name, train_file_name, val_file_name, test_file_name)
+
+	aae_machine.train()
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ import re
 import numpy as np
 
 
-class dataset:
+class dataset(object):
 	def __init__(self, train_file_name, val_file_name, test_file_name, class_num, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
 		self.class_num = class_num
 		self.train_X, self.train_Y = self.get_XY(train_file_name)
