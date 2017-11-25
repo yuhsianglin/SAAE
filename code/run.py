@@ -18,7 +18,7 @@ def main(_):
 	lrn_rate = 0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 5
+	epoch_max = 100
 
 	train_size = 3000
 	#reg_lambda = 1.0 / train_size
@@ -27,7 +27,7 @@ def main(_):
 	# Redundant for autoencoder
 	class_num = 10
 
-	write_model_log_period = 2
+	write_model_log_period = 10
 
 	train_file_name = '../../hw1_data/digitstrain.txt'
 	val_file_name = '../../hw1_data/digitsvalid.txt'

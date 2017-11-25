@@ -30,27 +30,6 @@ class aae(object):
 		#self.graph = tf.Graph()
 
 
-	# Autoencoder
-	def encode(self, X):
-		rng1 = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
-		W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng1, maxval = rng1 ) )
-		b_e = tf.Variable(tf.zeros([self.hid_dim]))
-		H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
-		return [H, W_e]
-
-
-	def decode(self, H, W_e):
-		b_d = tf.Variable(tf.zeros([self.input_dim]))
-		X_tilde = tf.sigmoid( tf.matmul(H, tf.transpose(W_e)) + b_d )
-		return X_tilde
-
-
-	def decode_to_logit(self, H, W_e):
-		b_d = tf.Variable(tf.zeros([self.input_dim]))
-		X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
-		return X_tilde_logit
-
-
 	# Discriminator
 	def discriminate(self, sample):
 		rng1 = 1.0 / math.sqrt( float( self.hid_dim + self.d1 ) )
@@ -96,15 +75,37 @@ class aae(object):
 		X = tf.placeholder( tf.float32, [None, self.input_dim] )
 		#Y = tf.placeholder( tf.float32, [None, self.class_num] )
 
-		H, W_e = self.encode(X)
-		X_tilde_logit = self.decode_to_logit(H, W_e)
+		# Autoencoder
+		rng_ae = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
+		W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng_ae, maxval = rng_ae ) )
+		b_e = tf.Variable(tf.zeros([self.hid_dim]))
+		H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
+
+		b_d = tf.Variable(tf.zeros([self.input_dim]))
+		X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
+
 		ave_entropy = self.eval_entropy(X_tilde_logit, X)
 
 		# Positive samples
 		Z = tf.placeholder( tf.float32, [None, self.hid_dim] )
-		disc_res_pos = self.discriminate(Z)
 
-		disc_res_neg = self.discriminate(H)
+		# Discriminate positive samples
+		rng1 = 1.0 / math.sqrt( float( self.hid_dim + self.d1 ) )
+		W1 = tf.Variable( tf.random_uniform( [self.hid_dim, self.d1], minval = -rng1, maxval = rng1 ) )
+		b1 = tf.Variable(tf.zeros([self.d1]))
+		Z1_pos = tf.sigmoid( tf.matmul(Z, W1) + b1 )
+
+		rng2 = 1.0 / math.sqrt( float( self.d1 + 1 ) )
+		W2 = tf.Variable( tf.random_uniform( [self.d1, 1], minval = -rng2, maxval = rng2 ) )
+		b2 = tf.Variable(tf.zeros([1]))
+		Z2_pos = tf.sigmoid( tf.matmul(Z1_pos, W2) + b2 )
+		disc_res_pos = Z2_pos
+
+		# Discriminate negative samples
+		Z1_neg = tf.sigmoid( tf.matmul(H, W1) + b1 )
+		Z2_neg = tf.sigmoid( tf.matmul(Z1_neg, W2) + b2 )
+		disc_res_neg = Z2_neg
+
 		gen_loss = self.eval_gen_loss(ave_entropy, disc_res_neg)
 		disc_loss = self.eval_disc_loss(disc_res_pos, disc_res_neg)
 
