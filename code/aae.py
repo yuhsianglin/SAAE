@@ -71,16 +71,22 @@ class aae(object):
 		return ave_entropy
 
 
-	def eval_gen_loss(self, ave_entropy, neg_Z2):
-		# loss = ave_entropy + self.reg_lambda / 2.0 * ( tf.nn.l2_loss(W_e) )
-		gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - neg_Z2 ) )
+	def eval_gen_loss(self, ave_entropy, disc_res_neg):
+		# Note that tf.nn.l2_loss() has already included the 1/2 factor
+		# loss = ave_entropy + self.reg_lambda * ( tf.nn.l2_loss(W_e) )
+		gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
 		return gen_loss
 
 
-	def eval_disc_loss(self, pos_Z2, neg_Z2):
-		# loss = ave_entropy + self.reg_lambda / 2.0 * ( tf.nn.l2_loss(W_e) )
-		disc_loss = -tf.reduce_mean( tf.log( pos_Z2 ) ) - tf.reduce_mean( tf.log( 1.0 - neg_Z2 ) )
+	def eval_disc_loss(self, disc_res_pos, disc_res_neg):
+		# loss = ave_entropy + self.reg_lambda * ( tf.nn.l2_loss(W_e) )
+		disc_loss = -tf.reduce_mean( tf.log( disc_res_pos ) ) - tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
 		return disc_loss
+
+
+	# Write log
+	def write_H(self, H, H_file_name):
+		np.save( H_file_name, H.eval() )
 
 
 	def train(self):
@@ -94,10 +100,11 @@ class aae(object):
 
 		# Positive samples
 		Z = tf.placeholder( tf.float32, [None, self.hid_dim] )
-		pos_Z2 = self.discriminate(Z)
+		disc_res_pos = self.discriminate(Z)
 
-		gen_loss = self.eval_gen_loss(ave_entropy, H)
-		disc_loss = self.eval_disc_loss(pos_Z2, H)
+		disc_res_neg = self.discriminate(H)
+		gen_loss = self.eval_gen_loss(ave_entropy, disc_res_neg)
+		disc_loss = self.eval_disc_loss(disc_res_pos, disc_res_neg)
 
 		train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
 		train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
