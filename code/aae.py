@@ -114,24 +114,30 @@ class aae(object):
 
 		log_file = open(self.log_file_name, 'w+')
 
-		'''
+		
 		# Initial train loss, full-batch for train
 		self.data.initialize_batch('train_init')
+		self.gaus_sample.initialize_batch('train_init')
 		X_full, Y_full, current_batch_size, batch_counter = self.data.next_batch()
-		feed_dict = { X: X_full }
-		train_loss_got = sess.run(loss, feed_dict = feed_dict)
+		Z_batch, _, _, _ = self.gaus_sample.next_batch()
+		feed_dict = { X: X_full, Z: Z_batch }
+		train_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
+		train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
 
 		# Use full-batch for val
 		self.data.initialize_batch('val')
+		self.gaus_sample.initialize_batch('val')
 		X_val_full, Y_val_full, current_batch_size, batch_counter = self.data.next_batch()
-		feed_dict = { X: X_val_full }
-		val_loss_got = sess.run(loss, feed_dict = feed_dict)
+		Z_batch, _, _, _ = self.gaus_sample.next_batch()
+		feed_dict = { X: X_full, Z: Z_batch }
+		val_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
+		val_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
 
-		log_string = '%d\t%f\t%f\t%f\n' % (0, train_loss_got, val_loss_got, 0.0)
-		print_string = '%d\t%f\t%f\t%f' % (0, train_loss_got, val_loss_got, 0.0)
+		log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (0, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, 0.0)
+		print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (0, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, 0.0)
 		log_file.write(log_string)
 		print(print_string)
-		'''
+		
 
 		total_time_begin = time.time()
 		for epoch in range(self.epoch_max):
@@ -167,13 +173,16 @@ class aae(object):
 		total_time = total_time_end - total_time_begin
 		log_file.close()
 
-		'''
+		
 		# Use full-batch for test
 		self.data.initialize_batch('test')
+		self.gaus_sample.initialize_batch('test')
 		X_test_full, Y_test_full, current_batch_size, batch_counter = self.data.next_batch()
-		feed_dict = { X: X_test_full }
-		test_loss_got = sess.run(loss, feed_dict = feed_dict)
+		Z_batch, _, _, _ = self.gaus_sample.next_batch()
+		feed_dict = { X: X_full, Z: Z_batch }
+		test_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
+		test_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
 
-		print_string = 'Total epoch = %d, test loss = %f, total time = %f' % (epoch + 1, test_loss_got, total_time)
+		print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
 		print(print_string)
-		'''
+		

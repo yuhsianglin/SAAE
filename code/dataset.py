@@ -74,6 +74,7 @@ class dataset(object):
 		self.remaining_batch_size = instance_num - ( self.batch_num - 1 ) * batch_size_spec
 
 		if batch_size_spec == instance_num:
+			# Use full batch => do not permute
 			self.index_matrix = np.array(range(instance_num))
 		elif self.remaining_batch_size < batch_size_spec:
 			self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
