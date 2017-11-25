@@ -156,6 +156,18 @@ class aae(object):
 			time_end = time.time()
 			time_epoch = time_end - time_begin
 
+			'''
+			# Try going through again the full training set to evaluate training loss
+			# Confirmed: Does not make difference
+			self.data.initialize_batch('train_init')
+			self.gaus_sample.initialize_batch('train_init')
+			X_full, Y_full, current_batch_size, batch_counter = self.data.next_batch()
+			Z_batch, _, _, _ = self.gaus_sample.next_batch()
+			feed_dict = { X: X_full, Z: Z_batch }
+			train_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
+			train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
+			'''
+
 			# Use full-batch for val
 			self.data.initialize_batch('val')
 			self.gaus_sample.initialize_batch('val')
@@ -173,7 +185,7 @@ class aae(object):
 		total_time = total_time_end - total_time_begin
 		log_file.close()
 
-		
+
 		# Use full-batch for test
 		self.data.initialize_batch('test')
 		self.gaus_sample.initialize_batch('test')
