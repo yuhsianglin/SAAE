@@ -6,12 +6,13 @@ import re
 import numpy as np
 
 
+# In this class, the files are .npy files stored with numpy ndarray
+# Note that there is no class_num
 class attrdataset(object):
-	def __init__(self, train_file_name, val_file_name, test_file_name, class_num, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
-		self.class_num = class_num
-		self.train_X, self.train_Y = self.get_XY(train_file_name)
-		self.val_X, self.val_Y = self.get_XY(val_file_name)
-		self.test_X, self.test_Y = self.get_XY(test_file_name)
+	def __init__(self, train_file_name, val_file_name, test_file_name, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
+		self.train_X = self.get_X(train_file_name)
+		self.val_X = self.get_X(val_file_name)
+		self.test_X = self.get_X(test_file_name)
 
 		# For batch_size_{} == -1, will be full batch_size later
 		self.batch_size_train = batch_size_train
@@ -25,23 +26,11 @@ class attrdataset(object):
 		self.current_batch_size = 0
 
 
-	def get_XY(self, file_name):
-		X = []
-		Y = []
-
+	def get_X(self, file_name):
 		file = open(file_name, 'r')
-		for line in file:
-			xtmp = re.split(',', line)
-			digittmp = int(xtmp[-1])
-			del xtmp[-1]
-			xtmp = list(np.array(xtmp).astype(np.float32))
-			ytmp = np.zeros(self.class_num).astype(np.int32)
-			ytmp[digittmp] = 1
-			X.append(xtmp)
-			Y.append(list(ytmp))
+		X = np.load(file)
 		file.close()
-
-		return [np.array(X).astype(np.float32), np.array(Y).astype(np.int32)]
+		return X.astype(np.float32)
 
 
 	def has_next_batch(self):

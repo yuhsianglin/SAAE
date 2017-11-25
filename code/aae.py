@@ -10,7 +10,7 @@ import dataset
 
 
 class aae(object):
-	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name):
+	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, write_model_log_period):
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
 		self.class_num = class_num
@@ -20,7 +20,8 @@ class aae(object):
 		self.batch_size_train = batch_size_train
 		self.epoch_max = epoch_max
 		self.reg_lambda = reg_lambda
-		self.log_file_name = log_file_name
+		self.log_file_name_head = log_file_name_head
+		self.write_model_log_period = write_model_log_period
 
 		self.data = dataset.dataset(train_file_name, val_file_name, test_file_name, class_num, batch_size_train)
 
@@ -85,9 +86,9 @@ class aae(object):
 
 
 	# Write log
-	# H_np is a numpy array
-	def write_H(self, H_np, H_file_name):
-		np.save( H_file_name, H_np )
+	# param_np is a numpy array
+	def write_model_param(self, param_file_name, param_np):
+		np.save( param_file_name, param_np )
 
 
 	def train(self):
@@ -113,7 +114,7 @@ class aae(object):
 		sess = tf.Session()
 		sess.run( tf.global_variables_initializer() )
 
-		log_file = open(self.log_file_name, 'w+')
+		log_file = open(self.log_file_name_head + '.txt', 'w+')
 
 		
 		# Initial train loss, full-batch for train
@@ -157,17 +158,37 @@ class aae(object):
 			time_end = time.time()
 			time_epoch = time_end - time_begin
 
-			'''
-			# Try going through again the full training set to evaluate training loss
-			# Confirmed: Does not make difference
-			self.data.initialize_batch('train_init')
-			self.gaus_sample.initialize_batch('train_init')
-			X_full, Y_full, current_batch_size, batch_counter = self.data.next_batch()
-			Z_batch, _, _, _ = self.gaus_sample.next_batch()
-			feed_dict = { X: X_full, Z: Z_batch }
-			train_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
-			train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
-			'''
+			
+			if (epoch + 1) % self.write_model_log_period == 0:
+				# Try going through again the full training set to evaluate training loss
+				# Confirmed: Does not make difference
+				self.data.initialize_batch('train_init')
+				self.gaus_sample.initialize_batch('train_init')
+				X_full, Y_full, current_batch_size, batch_counter = self.data.next_batch()
+				Z_batch, _, _, _ = self.gaus_sample.next_batch()
+				feed_dict = { X: X_full, Z: Z_batch }
+				train_gen_loss_got = sess.run(gen_loss, feed_dict = feed_dict)
+				train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
+
+
+				# Write out H
+				H_got = sess.run(H, feed_dict = feed_dict)
+				self.write_model_param(self.log_file_name_head + '_H.npy', H_got)
+				W_e_got = sess.run(W_e)
+				self.write_model_param(self.log_file_name_head + '_W_e.npy', W_e_got)
+				b_e_got = sess.run(b_e)
+				self.write_model_param(self.log_file_name_head + '_b_e.npy', b_e_got)
+				b_d_got = sess.run(b_d)
+				self.write_model_param(self.log_file_name_head + '_b_d.npy', b_d_got)
+				W1_got = sess.run(W1)
+				self.write_model_param(self.log_file_name_head + '_W1.npy', W1_got)
+				b1_got = sess.run(b1)
+				self.write_model_param(self.log_file_name_head + '_b1.npy', b1_got)
+				W2_got = sess.run(W2)
+				self.write_model_param(self.log_file_name_head + '_W2.npy', W2_got)
+				b2_got = sess.run(b2)
+				self.write_model_param(self.log_file_name_head + '_b2.npy', b2_got)
+			
 
 			# Use full-batch for val
 			self.data.initialize_batch('val')
@@ -177,11 +198,11 @@ class aae(object):
 			feed_dict = { X: X_val_full, Z: Z_val_full }
 			val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
-
+			'''
 			# Write out H
 			H_got = sess.run(H, feed_dict = feed_dict)
 			self.write_H(H_got, './log/log_H_07.npy')
-
+			'''
 
 			log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
 			print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
