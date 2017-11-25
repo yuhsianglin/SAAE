@@ -85,8 +85,9 @@ class aae(object):
 
 
 	# Write log
-	def write_H(self, H, H_file_name):
-		np.save( H_file_name, H.eval() )
+	# H_np is a numpy array
+	def write_H(self, H_np, H_file_name):
+		np.save( H_file_name, H_np )
 
 
 	def train(self):
@@ -175,6 +176,12 @@ class aae(object):
 			Z_val_full, _, _, _ = self.gaus_sample.next_batch()
 			feed_dict = { X: X_val_full, Z: Z_val_full }
 			val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
+
+
+			# Write out H
+			H_got = sess.run(H, feed_dict = feed_dict)
+			self.write_H(H_got, './log/log_H_07.npy')
+
 
 			log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
 			print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)

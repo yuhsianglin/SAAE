@@ -18,7 +18,7 @@ def main(_):
 	lrn_rate = 0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 100
+	epoch_max = 5
 
 	train_size = 3000
 	#reg_lambda = 1.0 / train_size
@@ -31,7 +31,7 @@ def main(_):
 	val_file_name = '../../hw1_data/digitsvalid.txt'
 	test_file_name = '../../hw1_data/digitstest.txt'
 
-	log_file_name = './log/log_test_04.txt'
+	log_file_name = './log/log_test_07.txt'
 
 	gaus_train_file_name = './gaus_sample_train.txt'
 	gaus_val_file_name = './gaus_sample_valid.txt'
