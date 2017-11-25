@@ -31,7 +31,7 @@ def main(_):
 	val_file_name = '../../hw1_data/digitsvalid.txt'
 	test_file_name = '../../hw1_data/digitstest.txt'
 
-	log_file_name = './log/log_test_02.txt'
+	log_file_name = './log/log_test_03.txt'
 
 	gaus_train_file_name = './gaus_sample_train.txt'
 	gaus_val_file_name = './gaus_sample_valid.txt'

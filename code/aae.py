@@ -50,12 +50,6 @@ class aae(object):
 		return X_tilde_logit
 
 
-	# Gaussian prior
-	#def positive_sample(self, stddev_spec, batch_size):
-	#	Z = tf.random_normal( [batch_size, self.hid_dim], mean = 0.0, stddev = stddev_spec )
-	#	return Z
-
-
 	# Discriminator
 	def discriminate(self, sample):
 		rng1 = 1.0 / math.sqrt( float( self.hid_dim + self.d1 ) )
@@ -67,6 +61,7 @@ class aae(object):
 		W2 = tf.Variable( tf.random_uniform( [self.d1, 1], minval = -rng1, maxval = rng1 ) )
 		b2 = tf.Variable(tf.zeros([1]))
 		Z2 = tf.sigmoid( tf.matmul(Z1, W2) + b2 )
+		return Z2
 
 
 	# Joint trainer
@@ -84,8 +79,7 @@ class aae(object):
 
 	def eval_disc_loss(self, pos_Z2, neg_Z2):
 		# loss = ave_entropy + self.reg_lambda / 2.0 * ( tf.nn.l2_loss(W_e) )
-		#disc_loss = -tf.reduce_mean( tf.log( pos_Z2 ) ) - tf.reduce_mean( tf.log( 1.0 - neg_Z2 ) )
-		disc_loss = - tf.reduce_mean( tf.log( 1.0 - neg_Z2 ) )
+		disc_loss = -tf.reduce_mean( tf.log( pos_Z2 ) ) - tf.reduce_mean( tf.log( 1.0 - neg_Z2 ) )
 		return disc_loss
 
 
@@ -100,7 +94,6 @@ class aae(object):
 
 		# Positive samples
 		Z = tf.placeholder( tf.float32, [None, self.hid_dim] )
-		#Z = self.positive_sample(self.gaus_prior_stddev, batch_size)
 		pos_Z2 = self.discriminate(Z)
 
 		gen_loss = self.eval_gen_loss(ave_entropy, H)
