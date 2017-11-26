@@ -115,4 +115,4 @@ class dataset(object):
 			self.remaining_batch_size = 0
 			self.current_batch_size = 0
 
-		return [output_X, output_Y, self.current_batch_size, batch_counter_output]
+		return [output_X, output_Y, self.current_batch_size, batch_counter_output, index_vector]
