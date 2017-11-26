@@ -31,21 +31,7 @@ class aaeexp(object):
 		#self.graph = tf.Graph()
 
 
-	# Discriminator
-	def discriminate(self, sample):
-		rng1 = 1.0 / math.sqrt( float( self.hid_dim + self.d1 ) )
-		W1 = tf.Variable( tf.random_uniform( [self.hid_dim, self.d1], minval = -rng1, maxval = rng1 ) )
-		b1 = tf.Variable(tf.zeros([self.d1]))
-		Z1 = tf.sigmoid( tf.matmul(sample, W1) + b1 )
-
-		rng2 = 1.0 / math.sqrt( float( self.d1 + 1 ) )
-		W2 = tf.Variable( tf.random_uniform( [self.d1, 1], minval = -rng1, maxval = rng1 ) )
-		b2 = tf.Variable(tf.zeros([1]))
-		Z2 = tf.sigmoid( tf.matmul(Z1, W2) + b2 )
-		return Z2
-
-
-	# Joint trainer
+	# Loss functions for joint training
 	def eval_entropy(self, X_tilde_logit, X):
 		entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit)
 		ave_entropy = tf.reduce_mean(entropy)
@@ -66,9 +52,51 @@ class aaeexp(object):
 
 
 	# Write log
-	# param_np is a numpy array
-	def write_model_param(self, param_file_name, param_np):
-		np.save( param_file_name, param_np )
+	def write_log(self, log_file, epoch, time_epoch, X, Z, T, sess, gen_loss, disc_loss, train_gen_loss_given = None, train_disc_loss_given = None):
+		if train_gen_loss_given == None or train_disc_loss_given == None:
+			self.data.initialize_batch('train_init')
+			self.gaus_sample.initialize_batch('train_init')
+			self.attrdata.initialize_batch('train_init')
+			#X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
+			X_full, _, _, _, index_vector = self.data.next_batch()
+			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
+			T_batch = self.attrdata.next_batch(index_vector)
+			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
+			train_gen_loss_got, train_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
+		else:
+			train_gen_loss_got, train_disc_loss_got = [train_gen_loss_given, train_disc_loss_given]
+
+		self.data.initialize_batch('val')
+		self.gaus_sample.initialize_batch('val')
+		self.attrdata.initialize_batch('val')
+		X_val_full, _, _, _, index_vector = self.data.next_batch()
+		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
+		T_batch = self.attrdata.next_batch(index_vector)
+		feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
+		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
+
+		log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
+		print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
+		log_file.write(log_string)
+		print(print_string)
+
+
+	def write_model_param(self, sess, W_e, b_e, b_d, W1, b1, W2, b2):
+		np.save(self.log_file_name_head + '_W_e.npy', sess.run(W_e))
+		np.save(self.log_file_name_head + '_b_e.npy', sess.run(b_e))
+		np.save(self.log_file_name_head + '_b_d.npy', sess.run(b_d))
+		np.save(self.log_file_name_head + '_W1.npy', sess.run(W1))
+		np.save(self.log_file_name_head + '_b1.npy', sess.run(b1))
+		np.save(self.log_file_name_head + '_W2.npy', sess.run(W2))
+		np.save(self.log_file_name_head + '_b2.npy', sess.run(b2))
+
+
+	def write_H(self, X, H, sess):
+		self.data.initialize_batch('train_init')
+		X_full, _, _, _, _ = self.data.next_batch()
+		feed_dict = { X: X_full }
+		H_got = sess.run(H, feed_dict = feed_dict)
+		np.save(self.log_file_name_head + '_H.npy', H_got)
 
 
 	def train(self):
@@ -120,34 +148,7 @@ class aaeexp(object):
 		sess.run( tf.global_variables_initializer() )
 
 		log_file = open(self.log_file_name_head + '.txt', 'w+')
-
-		
-		# Initial train loss, full-batch for train
-		self.data.initialize_batch('train_init')
-		self.gaus_sample.initialize_batch('train_init')
-		self.attrdata.initialize_batch('train_init')
-		X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-		Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-		T_batch = self.attrdata.next_batch(index_vector)
-		#T_batch, 
-		feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
-		train_gen_loss_got, train_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-
-		# Use full-batch for val
-		self.data.initialize_batch('val')
-		self.gaus_sample.initialize_batch('val')
-		self.attrdata.initialize_batch('val')
-		X_val_full, Y_val_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
-		T_batch = self.attrdata.next_batch(index_vector)
-		feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
-		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-
-		log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (0, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, 0.0)
-		print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (0, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, 0.0)
-		log_file.write(log_string)
-		print(print_string)
-		
+		self.write_log(log_file, -1, 0.0, X, Z, T, sess, gen_loss, disc_loss);
 
 		total_time_begin = time.time()
 		for epoch in range(self.epoch_max):
@@ -167,60 +168,14 @@ class aaeexp(object):
 
 			time_end = time.time()
 			time_epoch = time_end - time_begin
-
 			
 			if (epoch + 1) % self.write_model_log_period == 0:
-				# Try going through again the full training set to evaluate training loss
-				# Confirmed: Does not make difference
-				self.data.initialize_batch('train_init')
-				self.gaus_sample.initialize_batch('train_init')
-				self.attrdata.initialize_batch('train_init')
-				X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-				Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-				T_batch = self.attrdata.next_batch(index_vector)
-				feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
-				train_gen_loss_got, train_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-
-
-				# Write out H
-				H_got = sess.run(H, feed_dict = feed_dict)
-				self.write_model_param(self.log_file_name_head + '_H.npy', H_got)
-				W_e_got = sess.run(W_e)
-				self.write_model_param(self.log_file_name_head + '_W_e.npy', W_e_got)
-				b_e_got = sess.run(b_e)
-				self.write_model_param(self.log_file_name_head + '_b_e.npy', b_e_got)
-				b_d_got = sess.run(b_d)
-				self.write_model_param(self.log_file_name_head + '_b_d.npy', b_d_got)
-				W1_got = sess.run(W1)
-				self.write_model_param(self.log_file_name_head + '_W1.npy', W1_got)
-				b1_got = sess.run(b1)
-				self.write_model_param(self.log_file_name_head + '_b1.npy', b1_got)
-				W2_got = sess.run(W2)
-				self.write_model_param(self.log_file_name_head + '_W2.npy', W2_got)
-				b2_got = sess.run(b2)
-				self.write_model_param(self.log_file_name_head + '_b2.npy', b2_got)
+				self.write_model_param(sess, W_e, b_e, b_d, W1, b1, W2, b2)
+				#self.write_H(X, H, sess)
 			
-
-			# Use full-batch for val
-			self.data.initialize_batch('val')
-			self.gaus_sample.initialize_batch('val')
-			self.attrdata.initialize_batch('val')
-			X_val_full, Y_val_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-			Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
-			T_batch = self.attrdata.next_batch(index_vector)
-			feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
-			val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-
-			'''
-			# Write out H
-			H_got = sess.run(H, feed_dict = feed_dict)
-			self.write_H(H_got, './log/log_H_07.npy')
-			'''
-
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
-			print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
-			log_file.write(log_string)
-			print(print_string)
+			# Tried going through again the full training set to evaluate training loss
+			# Confirmed: Does not make difference
+			self.write_log(log_file, epoch, time_epoch, X, Z, T, sess, gen_loss, disc_loss, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
 		# End of all epochs
 		total_time_end = time.time()
 		total_time = total_time_end - total_time_begin
@@ -231,10 +186,10 @@ class aaeexp(object):
 		self.data.initialize_batch('test')
 		self.gaus_sample.initialize_batch('test')
 		self.attrdata.initialize_batch('test')
-		X_test_full, Y_test_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
+		X_test_full, _, _, _, index_vector = self.data.next_batch()
 		Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 		T_batch = self.attrdata.next_batch(index_vector)
-		feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
+		feed_dict = { X: X_test_full, Z: Z_batch, T: T_batch }
 		test_gen_loss_got, test_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
 		print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
