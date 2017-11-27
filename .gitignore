@@ -11,3 +11,5 @@ supplementary.pdf
 *.pyc
 log*.*
 
+*.zip
+data/*
