@@ -31,8 +31,8 @@ class dataset(object):
 
 		file = open(file_name, 'r')
 		for line in file:
-			xtmp = re.split(',', line)
-			digittmp = int(xtmp[-1])
+			xtmp = re.split(' |,', line)
+			digittmp = int(float(xtmp[-1]))
 			del xtmp[-1]
 			xtmp = list(np.array(xtmp).astype(np.float32))
 			ytmp = np.zeros(self.class_num).astype(np.int32)
