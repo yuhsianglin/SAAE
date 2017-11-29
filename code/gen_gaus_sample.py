@@ -9,7 +9,7 @@ def main():
 	gaus_prior_mean = 0.5
 	gaus_prior_stddev = 0.2
 	batch_size = 5994
-	hid_dim = 100
+	hid_dim = 312
 	pos_sample = np.random.normal(gaus_prior_mean, gaus_prior_stddev, [batch_size, hid_dim])
 
 	pos_sample_train_file_name = './gaus_sample_train.txt'

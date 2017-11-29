@@ -35,10 +35,15 @@ class dataset(object):
 			digittmp = int(float(xtmp[-1]))
 			del xtmp[-1]
 			xtmp = list(np.array(xtmp).astype(np.float32))
-			ytmp = np.zeros(self.class_num).astype(np.int32)
-			ytmp[digittmp] = 1
 			X.append(xtmp)
-			Y.append(list(ytmp))
+
+			# If use [0, N-1] indexing for Y, use the following line
+			Y.append(digittmp)
+
+			# If use one-hot vector for Y, use the following lines
+			#ytmp = np.zeros(self.class_num).astype(np.int32)
+			#ytmp[digittmp] = 1
+			#Y.append(list(ytmp))
 		file.close()
 
 		return [np.array(X).astype(np.float32), np.array(Y).astype(np.int32)]
@@ -97,13 +102,22 @@ class dataset(object):
 
 		if self.dataset_name == 'train' or self.dataset_name == 'train_init':
 			output_X = self.train_X[index_vector, :]
-			output_Y = self.train_Y[index_vector, :]
+
+			output_Y = self.train_Y[index_vector]
+			# If use one-hot vector for Y, use the following line
+			#output_Y = self.train_Y[index_vector, :]
 		elif self.dataset_name == 'val':
 			output_X = self.val_X[index_vector, :]
-			output_Y = self.val_Y[index_vector, :]
+
+			output_Y = self.val_Y[index_vector]
+			# If use one-hot vector for Y, use the following line
+			#output_Y = self.val_Y[index_vector, :]
 		elif self.dataset_name == 'test':
 			output_X = self.test_X[index_vector, :]
-			output_Y = self.test_Y[index_vector, :]
+
+			output_Y = self.test_Y[index_vector]
+			# If use one-hot vector for Y, use the following line
+			#output_Y = self.test_Y[index_vector, :]
 
 		batch_counter_output = self.batch_counter
 		self.batch_counter += 1
