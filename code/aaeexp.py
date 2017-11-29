@@ -64,7 +64,7 @@ class aaeexp(object):
 		if train_gen_loss_given == None or train_disc_loss_given == None:
 			self.data.initialize_batch('train_init')
 			self.gaus_sample.initialize_batch('train_init')
-			self.attrdata.initialize_batch('train_init')
+			#self.attrdata.initialize_batch('train_init')
 			#X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
 			X_full, _, _, _, index_vector = self.data.next_batch()
 			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
@@ -77,12 +77,12 @@ class aaeexp(object):
 
 		self.data.initialize_batch('val')
 		self.gaus_sample.initialize_batch('val')
-		self.attrdata.initialize_batch('val')
+		#self.attrdata.initialize_batch('val')
 		X_val_full, _, _, _, index_vector = self.data.next_batch()
 		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
 		#T_batch = self.attrdata.next_batch(index_vector)
 		#feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
-		feed_dict = { X: X_full, Z: Z_batch }
+		feed_dict = { X: X_val_full, Z: Z_val_full }
 		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
 		log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
@@ -168,7 +168,7 @@ class aaeexp(object):
 
 			self.data.initialize_batch('train')
 			self.gaus_sample.initialize_batch('train')
-			self.attrdata.initialize_batch('train')
+			#self.attrdata.initialize_batch('train')
 			while self.data.has_next_batch():
 				X_batch, Y_batch, current_batch_size, batch_counter, index_vector = self.data.next_batch()
 				Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
@@ -198,7 +198,7 @@ class aaeexp(object):
 		# Use full-batch for test
 		self.data.initialize_batch('test')
 		self.gaus_sample.initialize_batch('test')
-		self.attrdata.initialize_batch('test')
+		#self.attrdata.initialize_batch('test')
 		X_test_full, _, _, _, index_vector = self.data.next_batch()
 		Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 		#T_batch = self.attrdata.next_batch(index_vector)

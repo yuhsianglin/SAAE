@@ -17,9 +17,7 @@ class attrdataset(object):
 
 
 	def get_X(self, file_name):
-		file = open(file_name, 'r')
-		X = np.load(file)
-		file.close()
+		X = np.load(file_name)
 		return X.astype(np.float32)
 
 	def initialize_batch(self, dataset_name):

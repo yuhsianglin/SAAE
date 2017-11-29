@@ -18,7 +18,7 @@ def main(_):
 	lrn_rate = 0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 3
+	epoch_max = 100
 
 	train_size = 5994
 	test_size = 5794
@@ -28,7 +28,7 @@ def main(_):
 	# Redundant for autoencoder
 	class_num = 200
 
-	write_model_log_period = 1
+	write_model_log_period = 10
 
 	train_file_name = '../../project/data/preprocessed/training.txt'
 	val_file_name = '../../project/data/preprocessed/testing.txt'
