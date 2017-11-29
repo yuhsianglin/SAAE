@@ -37,9 +37,9 @@ def main(_):
 
 	log_file_name_head = './log/log_02'
 
-	gaus_train_file_name = './gaus_sample_train.txt'
-	gaus_val_file_name = './gaus_sample_valid.txt'
-	gaus_test_file_name = './gaus_sample_test.txt'
+	gaus_train_file_name = '../../project/data/gaussian/gaus_sample_train.txt'
+	gaus_val_file_name = '../../project/data/gaussian/gaus_sample_valid.txt'
+	gaus_test_file_name = '../../project/data/gaussian/gaus_sample_test.txt'
 
 	attr_train_file_name = '../../project/data/preprocessed/attribute_embeddings.npy'
 	attr_val_file_name = '../../project/data/preprocessed/attribute_embeddings.npy'

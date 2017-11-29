@@ -70,8 +70,6 @@ class aaeexp(object):
 			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 			#T_batch = self.attrdata.next_batch(index_vector)
 			T_batch = self.attrdata.next_batch( self.data.train_Y[ index_vector ] )
-			print('here')
-			print(self.data.train_Y.shape)
 			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
 			#feed_dict = { X: X_full, Z: Z_batch }
 			train_gen_loss_got, train_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
