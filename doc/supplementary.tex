@@ -143,7 +143,24 @@
 
 \section{Adversarial autoencoder with the prior as the guide}
 
-	The encoder, decoder, and generator are the same as described in the previous section. The difference is that we use the text representation instead of Gaussian noise as the prior in the adversarial net. For an input image $\bb{x}^{(i)}$ of class $c_i$ and the text representation $\bb{t}^{c_i}$ of this class,
+	The encoder, decoder, generator, and discriminator are the same as described in the previous section. The difference is that we use the text representation, instead of Gaussian noise, as the prior in the adversarial net. For an input image $\bb{x}^{(i)}$ of class $c_i$ and the text representation $\bb{t}^{c_i}$ of this class, we use $\bb{t}^{c_i}$ as the sample drawn from some underlying prior for the representation distribution of this class,
+	\begin{align}
+		\bb{z}^{c_i} = \bb{t}^{c_i}.
+	\end{align}
+	In addition, we remove the term measuring the L2 distance between the text representation and the hidden representation of the image from the loss function.
+
+	The loss function for the autoencoder and the generator is now the standard one,
+	\begin{align}
+		f_g = \frac{1}{|S|} \sum_{i \in S} \left\{ -\bb{x}^{(i)} \odot \log \tilde{\bb{x}}^{(i)} + \log\left[ 1 - D( \bb{h}^{(i)} ) \right] \right\}.
+	\end{align}
+	For the discriminator of the adversarial net, the loss function is
+	\begin{align}
+		f_d = -\frac{1}{|S|} \sum_{i \in S} \log D( \bb{z}^{(i)} ) - \frac{1}{|S|} \sum_{i \in S} \log\left[ 1 - D( \bb{h}^{(i)} ) \right],
+	\end{align}
+	where $\bb{z}^{(i)}$ is the corresponding text representation $\bb{t}^{c_i}$ for the image $\bb{x}^{(i)}$ belonging to class $c_i$.
+	
+	The optimization and test procedures are the same as those described in the previous section.
+
 
 
 
