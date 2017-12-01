@@ -19,7 +19,7 @@ def main(_):
 	lrn_rate = 0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 100
+	epoch_max = 500
 
 	train_size = 5994
 	#val_size = ...

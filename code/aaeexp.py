@@ -229,5 +229,5 @@ class aaeexp(object):
 
 
 		#print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
-		print_string = "Total epoch = %d, test accuracy = %f" % (epoch + 1, test_accuracy)
+		print_string = "Total epoch = %d, test accuracy = %f, total time = %f" % (epoch + 1, test_accuracy, total_time)
 		print(print_string)
