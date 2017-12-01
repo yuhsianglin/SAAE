@@ -116,7 +116,7 @@
 	\begin{align}
 		f_g = \frac{1}{|S|} \sum_{i \in S} \left\{ -\bb{x}^{(i)} \odot \log \tilde{\bb{x}}^{(i)} + \log\left[ 1 - D( \bb{h}^{(i)} ) \right] + || \bb{h}^{(i)} - \bb{t}^{c_i} ||_2^2 \right\},
 	\end{align}
-	where $\odot$ denotes the element-wise product, the log function is applied element-wisely, and $c_i$ is the class of the instance $x^{(i)}$. Here we assume that there is only one text $\bb{t}^c$ for each class $c$.
+	where $\odot$ denotes the element-wise product, the log function is applied element-wisely, and $c_i$ is the class of the instance $\bb{x}^{(i)}$. Here we assume that there is only one text $\bb{t}^c$ for each class $c$.
 
 	For the discriminator of the adversarial net, the loss function is
 	\begin{align}
@@ -134,6 +134,16 @@
 	\end{align}
 	while the parameters of the generator ($W^e, \bb{b}^e, W^d, \bb{b}^d$) are held constant.
 
+	At test time, given a test image $\bb{x}$, the encoder generates its representation $\bb{h}$. We are also given the text representations $\bb{t}^c$ of the unseen classes, $c \in \{ 1, 2, \dots, N_{\textrm{us}} \}$. We then compute the L2 distance between each pair of $\bb{h}$ and $\bb{t}^c$, and return the $\bb{t}^{c*}$ that is closest to $\bb{h}$ as our prediction of the class of this image $\bb{x}$.
+
+
+
+% ----------------------------------------------------
+% ----------------------------------------------------
+
+\section{Adversarial autoencoder with the prior as the guide}
+
+	The encoder, decoder, and generator are the same as described in the previous section. The difference is that we use the text representation instead of Gaussian noise as the prior in the adversarial net. For an input image $\bb{x}^{(i)}$ of class $c_i$ and the text representation $\bb{t}^{c_i}$ of this class,
 
 
 

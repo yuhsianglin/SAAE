@@ -66,10 +66,10 @@ class aaeexp(object):
 			self.gaus_sample.initialize_batch('train_init')
 			self.attrdata.initialize_batch('train_init')
 			#X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-			X_full, _, _, _, index_vector = self.data.next_batch()
+			X_full, Y_full, _, _, _ = self.data.next_batch()
 			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 			#T_batch = self.attrdata.next_batch(index_vector)
-			T_batch = self.attrdata.next_batch( self.data.train_Y[ index_vector ] )
+			T_batch = self.attrdata.next_batch(Y_full)
 			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
 			#feed_dict = { X: X_full, Z: Z_batch }
 			train_gen_loss_got, train_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
@@ -79,10 +79,10 @@ class aaeexp(object):
 		self.data.initialize_batch('val')
 		self.gaus_sample.initialize_batch('val')
 		self.attrdata.initialize_batch('val')
-		X_val_full, _, _, _, index_vector = self.data.next_batch()
+		X_val_full, Y_val_full, _, _, _ = self.data.next_batch()
 		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
 		#T_batch = self.attrdata.next_batch(index_vector)
-		T_batch = self.attrdata.next_batch( self.data.val_Y[ index_vector ] )
+		T_batch = self.attrdata.next_batch(Y_val_full)
 		feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
 		#feed_dict = { X: X_val_full, Z: Z_val_full }
 		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
@@ -172,10 +172,10 @@ class aaeexp(object):
 			self.gaus_sample.initialize_batch('train')
 			self.attrdata.initialize_batch('train')
 			while self.data.has_next_batch():
-				X_batch, _, _, _, index_vector = self.data.next_batch()
+				X_batch, Y_batch, _, _, _ = self.data.next_batch()
 				Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 				#T_batch = self.attrdata.next_batch(index_vector)
-				T_batch = self.attrdata.next_batch( self.data.train_Y[ index_vector ] )
+				T_batch = self.attrdata.next_batch( Y_batch )
 				feed_dict = { X: X_batch, Z: Z_batch, T: T_batch }
 				#feed_dict = { X: X_batch, Z: Z_batch }
 				_, train_gen_loss_got = sess.run([train_gen_step, gen_loss], feed_dict = feed_dict)
@@ -201,16 +201,33 @@ class aaeexp(object):
 
 		# Use full-batch for test
 		self.data.initialize_batch('test')
-		self.gaus_sample.initialize_batch('test')
+		#self.gaus_sample.initialize_batch('test')
 		self.attrdata.initialize_batch('test')
-		X_test_full, _, _, _, index_vector = self.data.next_batch()
-		Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
+		X_test_full, Y_test_full, _, _, _ = self.data.next_batch()
+		#Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
 		#T_batch = self.attrdata.next_batch(index_vector)
-		T_batch = self.attrdata.next_batch( self.data.test_Y[ index_vector ] )
-		feed_dict = { X: X_test_full, Z: Z_batch, T: T_batch }
-		#feed_dict = { X: X_batch, Z: Z_batch }
-		test_gen_loss_got, test_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
+		#T_batch = self.attrdata.next_batch(Y_test_full)
+		#feed_dict = { X: X_test_full, Z: Z_batch, T: T_batch }
+		#test_gen_loss_got, test_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
-		print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
+		t = tf.placeholder(tf.float32, [self.hid_dim])
+		dist_from_t = tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
+
+		# Attribute row vectors of unsceen classes
+		T_test_full = self.attrdata.test_X
+
+		dist_matrix = []
+
+		for t_vec in T_test_full:
+			feed_dict = { X: X_test_full, t: t_vec }
+			dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
+
+		y_pred = np.array(dist_matrix).argmax(axis = 0)
+		del dist_matrix
+
+		test_accuracy = 1.0 - np.mean( (y_pred - Y_test_full).astype(bool).astype(int) )
+
+
+		#print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
+		print_string = "Total epoch = %d, test accuracy = %f" % (epoch + 1, test_accuracy)
 		print(print_string)
-		
