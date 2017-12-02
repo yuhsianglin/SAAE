@@ -10,7 +10,7 @@ import dataset
 import attrdataset
 
 
-class aaeexp(object):
+class aeexp(object):
 	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_file_name, write_model_log_period):
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
@@ -41,7 +41,7 @@ class aaeexp(object):
 	def eval_gen_loss(self, ave_entropy, disc_res_neg, H, T):
 		# Note that tf.nn.l2_loss() has already included the 1/2 factor
 		# loss = ave_entropy + self.reg_lambda * ( tf.nn.l2_loss(W_e) )
-		gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) ) + tf.losses.mean_squared_error( T, H )
+		gen_loss = ave_entropy + tf.losses.mean_squared_error( T, H )
 		return gen_loss
 	
 
@@ -55,7 +55,7 @@ class aaeexp(object):
 
 	def eval_disc_loss(self, disc_res_pos, disc_res_neg):
 		# loss = ave_entropy + self.reg_lambda * ( tf.nn.l2_loss(W_e) )
-		disc_loss = -tf.reduce_mean( tf.log( disc_res_pos ) ) - tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
+		disc_loss = tf.constant(0.0, dtype = tf.float32)
 		return disc_loss
 
 
@@ -155,7 +155,6 @@ class aaeexp(object):
 		disc_loss = self.eval_disc_loss(disc_res_pos, disc_res_neg)
 
 		train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
-		train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
 
 		sess = tf.Session()
 		sess.run( tf.global_variables_initializer() )
@@ -180,7 +179,7 @@ class aaeexp(object):
 				feed_dict = { X: X_batch, Z: Z_batch, T: T_batch }
 				#feed_dict = { X: X_batch, Z: Z_batch }
 				_, train_gen_loss_got = sess.run([train_gen_step, gen_loss], feed_dict = feed_dict)
-				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
+				train_disc_loss_got = 0
 			# End of all mini-batches in an epoch
 
 			time_end = time.time()

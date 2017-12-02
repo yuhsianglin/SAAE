@@ -6,9 +6,9 @@ import numpy as np
 
 
 def main():
-	gaus_prior_mean = 0.5
-	gaus_prior_stddev = 0.2
-	batch_size = 5994
+	gaus_prior_mean = 0.0
+	gaus_prior_stddev = 0.05
+	batch_size = 7626
 	hid_dim = 312
 	pos_sample = np.random.normal(gaus_prior_mean, gaus_prior_stddev, [batch_size, hid_dim])
 
@@ -27,7 +27,7 @@ def main():
 		pos_sample_train_file.write(str_to_write)
 
 
-	batch_size = 5794
+	batch_size = 1196
 	pos_sample = np.random.normal(gaus_prior_mean, gaus_prior_stddev, [batch_size, hid_dim])
 
 	pos_sample_train_file_name = './gaus_sample_valid.txt'
@@ -45,7 +45,7 @@ def main():
 		pos_sample_train_file.write(str_to_write)
 
 
-	batch_size = 5994
+	batch_size = 2966
 	pos_sample = np.random.normal(gaus_prior_mean, gaus_prior_stddev, [batch_size, hid_dim])
 
 	pos_sample_train_file_name = './gaus_sample_test.txt'

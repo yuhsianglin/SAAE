@@ -16,10 +16,10 @@ def main(_):
 
 	d1 = 100
 
-	lrn_rate = 0.02
+	lrn_rate = 0.05		#0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 1000
+	epoch_max = 100
 
 	train_size = 5994
 	#val_size = ...
@@ -37,7 +37,7 @@ def main(_):
 	test_file_name = '../../project/data/preprocessed/testing.txt'
 	#test_file_name = "../../project/data/preprocessed/training.txt"
 
-	log_file_name_head = './log/log_05'
+	log_file_name_head = './log/log_08'
 
 	gaus_train_file_name = '../../project/data/gaussian/gaus_sample_train.txt'
 	gaus_val_file_name = '../../project/data/gaussian/gaus_sample_valid.txt'
