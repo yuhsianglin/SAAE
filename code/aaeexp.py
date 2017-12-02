@@ -165,7 +165,8 @@ class aaeexp(object):
 		#self.write_log(log_file, -1, 0.0, X, Z, None, sess, gen_loss, disc_loss)
 
 		total_time_begin = time.time()
-		for epoch in range(self.epoch_max):
+		epoch = 0
+		while epoch < self.epoch_max:
 			time_begin = time.time()
 
 			self.data.initialize_batch('train')
@@ -193,6 +194,8 @@ class aaeexp(object):
 			# Confirmed: Does not make difference
 			self.write_log(log_file, epoch, time_epoch, X, Z, T, sess, gen_loss, disc_loss, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
 			#self.write_log(log_file, epoch, time_epoch, X, Z, None, sess, gen_loss, disc_loss, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
+
+			epoch += 1
 		# End of all epochs
 		total_time_end = time.time()
 		total_time = total_time_end - total_time_begin
@@ -211,23 +214,35 @@ class aaeexp(object):
 		#test_gen_loss_got, test_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
 		t = tf.placeholder(tf.float32, [self.hid_dim])
-		dist_from_t = tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
+		# Compute negative distance, in order to pick top k as shortest distances
+		neg_dist_from_t = -tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
 
 		# Attribute row vectors of unsceen classes
 		T_test_full = self.attrdata.test_X
 
-		dist_matrix = []
+		neg_neg_dist_matrix = []
 
 		for t_vec in T_test_full:
 			feed_dict = { X: X_test_full, t: t_vec }
-			dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
+			neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
 
-		y_pred = np.array(dist_matrix).argmax(axis = 0)
-		del dist_matrix
+		y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
+		#del neg_dist_matrix
 
-		test_accuracy = 1.0 - np.mean( (y_pred - Y_test_full).astype(bool).astype(int) )
+		y_pred_pos = np.argwhere( y_pred == Y_test_full.reshape([Y_test_full.shape[0], 1]) ).transpose()[1, :]
+		np.save(self.log_file_name_head + "_y_pred_pos.npy", y_pred_pos)
+
+		# For top-k precision
+		k_of_topk = 5
+		test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+
+		k_of_topk = 1
+		test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+
+		#test_accuracy = 1.0 - np.mean( (y_pred - Y_test_full).astype(bool).astype(int) )
 
 
 		#print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
-		print_string = "Total epoch = %d, test accuracy = %f, total time = %f" % (epoch + 1, test_accuracy, total_time)
+
+		print_string = "Total epoch = %d, top-1 test accuracy = %f, top-5 test accuracy = %f, total time = %f" % (epoch, test_top_1_accuracy, test_top_5_accuracy, total_time)
 		print(print_string)
