@@ -1,6 +1,0 @@
-Add awa dataset 
-xTrain.npy is training data
-xTest.npy is testing data
-sTrain.npy is training semantic features
-sTest.npy is testing semantic features
-This dataset comes directly from SAE paper. 
