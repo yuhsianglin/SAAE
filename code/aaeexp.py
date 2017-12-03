@@ -33,15 +33,20 @@ class aaeexp(object):
 
 	# Loss functions for joint training
 	def eval_entropy(self, X_tilde_logit, X):
-		entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit)
-		ave_entropy = tf.reduce_mean(entropy)
+		#entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit)
+		#ave_entropy = tf.reduce_mean(entropy)
+
+		#ave_entropy = tf.reduce_mean( tf.reduce_sum( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit), axis = 1 ) )
+		ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
+
 		return ave_entropy
 
 	
 	def eval_gen_loss(self, ave_entropy, disc_res_neg, H, T):
 		# Note that tf.nn.l2_loss() has already included the 1/2 factor
 		# loss = ave_entropy + self.reg_lambda * ( tf.nn.l2_loss(W_e) )
-		gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) ) + tf.losses.mean_squared_error( T, H )
+		#gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) ) + tf.losses.mean_squared_error( T, H )
+		gen_loss = ave_entropy + tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) ) + self.match_coef * tf.reduce_mean(tf.pow(T - H, 2))
 		return gen_loss
 	
 
@@ -218,7 +223,8 @@ class aaeexp(object):
 		neg_dist_from_t = -tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
 
 		# Attribute row vectors of unsceen classes
-		T_test_full = self.attrdata.X
+		# Use magic numbers for now...
+		T_test_full = self.attrdata.X[150:200]
 
 		neg_dist_matrix = []
 
@@ -229,15 +235,18 @@ class aaeexp(object):
 		y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
 		#del neg_dist_matrix
 
+		"""
 		y_pred_pos = np.argwhere( y_pred == Y_test_full.reshape([Y_test_full.shape[0], 1]) ).transpose()[1, :]
 		np.save(self.log_file_name_head + "_y_pred_pos.npy", y_pred_pos)
+		"""
 
 		# For top-k precision
+		# Use magic numbers for now...
 		k_of_topk = 5
-		test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+		test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
 
 		k_of_topk = 1
-		test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+		test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
 
 		#test_accuracy = 1.0 - np.mean( (y_pred - Y_test_full).astype(bool).astype(int) )
 
