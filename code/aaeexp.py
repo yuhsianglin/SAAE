@@ -156,8 +156,11 @@ class aaeexp(object):
 		#gen_loss = self.eval_gen_loss(ave_entropy, disc_res_neg)
 		disc_loss = self.eval_disc_loss(disc_res_pos, disc_res_neg)
 
-		train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
-		train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
+		#train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
+		#train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
+
+		train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(gen_loss)
+		train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
 
 		sess = tf.Session()
 		sess.run( tf.global_variables_initializer() )
