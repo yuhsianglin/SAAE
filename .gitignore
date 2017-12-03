@@ -14,4 +14,4 @@ log*.*
 *.zip
 data/*
 
-fig_*_y_pred_pos*.pdf
+fig_*.pdf
