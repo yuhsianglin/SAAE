@@ -62,7 +62,7 @@ class aaeexp(object):
 
 
 	# Write log
-	def write_log(self, log_file, epoch, time_epoch, X, Z, T, sess, gen_loss, disc_loss, train_gen_loss_given = None, train_disc_loss_given = None):
+	def write_log(self, log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, t, neg_dist_from_t, T_test_full, train_gen_loss_given = None, train_disc_loss_given = None):
 		if train_gen_loss_given == None or train_disc_loss_given == None:
 			self.data.initialize_batch('train_init')
 			self.gaus_sample.initialize_batch('train_init')
@@ -89,10 +89,27 @@ class aaeexp(object):
 		#feed_dict = { X: X_val_full, Z: Z_val_full }
 		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
 
-		log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
-		print_string = '%d\t%f\t%f\t%f\t%f\t%f' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, time_epoch)
-		log_file.write(log_string)
+		# Use full-batch for test
+		self.data.initialize_batch('test')
+		X_test_full, Y_test_full, _, _, _ = self.data.next_batch()
+		neg_dist_matrix = []
+		for t_vec in T_test_full:
+			feed_dict = { X: X_test_full, t: t_vec }
+			neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
+
+		k_of_topk = 5
+		test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+
+		k_of_topk = 1
+		test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+
+		y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
+
+
+		print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
+		log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
 		print(print_string)
+		log_file.write(log_string)
 
 
 	def write_model_param(self, sess, W_e, b_e, b_d, W1, b1, W2, b2):
@@ -162,11 +179,16 @@ class aaeexp(object):
 		train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(gen_loss)
 		train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
 
+		# For test set
+		t = tf.placeholder(tf.float32, [self.hid_dim])
+		neg_dist_from_t = -tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
+		T_test_full = self.attrdata.X[150:200]
+
 		sess = tf.Session()
 		sess.run( tf.global_variables_initializer() )
 
 		log_file = open(self.log_file_name_head + '.txt', 'w+')
-		self.write_log(log_file, -1, 0.0, X, Z, T, sess, gen_loss, disc_loss)
+		self.write_log(log_file, -1, 0.0, 0.0, X, Z, T, sess, gen_loss, disc_loss, t, neg_dist_from_t, T_test_full)
 		#self.write_log(log_file, -1, 0.0, X, Z, None, sess, gen_loss, disc_loss)
 
 		total_time_begin = time.time()
@@ -190,6 +212,9 @@ class aaeexp(object):
 
 			time_end = time.time()
 			time_epoch = time_end - time_begin
+
+			total_time_end = time.time()
+			total_time = total_time_end - total_time_begin
 			
 			if (epoch + 1) % self.write_model_log_period == 0:
 				self.write_model_param(sess, W_e, b_e, b_d, W1, b1, W2, b2)
@@ -197,64 +222,11 @@ class aaeexp(object):
 			
 			# Tried going through again the full training set to evaluate training loss
 			# Confirmed: Does not make difference
-			self.write_log(log_file, epoch, time_epoch, X, Z, T, sess, gen_loss, disc_loss, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
+			self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, t, neg_dist_from_t, T_test_full, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
 			#self.write_log(log_file, epoch, time_epoch, X, Z, None, sess, gen_loss, disc_loss, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got)
 
 			epoch += 1
 		# End of all epochs
-		total_time_end = time.time()
-		total_time = total_time_end - total_time_begin
-		#log_file.close()
-
-
-		# Use full-batch for test
-		self.data.initialize_batch('test')
-		#self.gaus_sample.initialize_batch('test')
-		#self.attrdata.initialize_batch('test')
-		X_test_full, Y_test_full, _, _, _ = self.data.next_batch()
-		#Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-		#T_batch = self.attrdata.next_batch(index_vector)
-		#T_batch = self.attrdata.next_batch(Y_test_full)
-		#feed_dict = { X: X_test_full, Z: Z_batch, T: T_batch }
-		#test_gen_loss_got, test_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-
-		t = tf.placeholder(tf.float32, [self.hid_dim])
-		# Compute negative distance, in order to pick top k as shortest distances
-		neg_dist_from_t = -tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
-
-		# Attribute row vectors of unsceen classes
-		# Use magic numbers for now...
-		T_test_full = self.attrdata.X[150:200]
-
-		neg_dist_matrix = []
-
-		for t_vec in T_test_full:
-			feed_dict = { X: X_test_full, t: t_vec }
-			neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
-
-		y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
-		#del neg_dist_matrix
-
-		"""
-		y_pred_pos = np.argwhere( y_pred == Y_test_full.reshape([Y_test_full.shape[0], 1]) ).transpose()[1, :]
-		np.save(self.log_file_name_head + "_y_pred_pos.npy", y_pred_pos)
-		"""
-
-		# For top-k precision
-		# Use magic numbers for now...
-		k_of_topk = 5
-		test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
-
-		k_of_topk = 1
-		test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full - 150, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
-
-		#test_accuracy = 1.0 - np.mean( (y_pred - Y_test_full).astype(bool).astype(int) )
-
-
-		#print_string = 'Total epoch = %d, test gen loss = %f, test disc loss = %f, total time = %f' % (epoch + 1, test_gen_loss_got, test_disc_loss_got, total_time)
-
-		print_string = "Total epoch = %d, top-1 test accuracy = %f, top-5 test accuracy = %f, total time = %f" % (epoch, test_top_1_accuracy, test_top_5_accuracy, total_time)
-		print(print_string)
-
-		log_file.write(print_string + "\n")
+		#total_time_end = time.time()
+		#total_time = total_time_end - total_time_begin
 		log_file.close()
