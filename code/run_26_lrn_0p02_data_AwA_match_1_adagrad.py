@@ -18,7 +18,7 @@ def main(_):
 	lrn_rate = 0.02
 	momentum = 0.9
 	batch_size_train = 16
-	epoch_max = 18
+	epoch_max = 1000
 
 	match_coef = 1
 
@@ -41,8 +41,8 @@ def main(_):
 	val_label_file_name = "../AwA/labelTest_0to9.npy"
 	test_label_file_name = "../AwA/labelTest_0to9.npy"
 
-	log_file_name_head = "./log/log_25_lrn_0p02_data_AwA_match_1_adagrad_3"
-	load_model_file_name_head = "./log/log_25_lrn_0p02_data_AwA_match_1_adagrad_2"
+	log_file_name_head = "./log/log_26_lrn_0p02_data_AwA_match_1_adagrad"
+	#load_model_file_name_head = "./log/log_25_lrn_0p02_data_AwA_match_1_adagrad_2"
 
 	gaus_train_file_name = "../gaussian/gaus_sample_for_AwA/gaus_sample_train.txt"
 	gaus_val_file_name = "../gaussian/gaus_sample_for_AwA/gaus_sample_valid.txt"
@@ -52,10 +52,9 @@ def main(_):
 	attr_val_file_name = "../AwA/sTest_0to1.npy"
 	attr_test_file_name = "../AwA/sTest_0to1.npy"
 
-	aaeexp_machine = aaeexp.aaeexp(input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = match_coef, train_label_file_name = train_label_file_name, val_label_file_name = val_label_file_name, test_label_file_name = test_label_file_name, load_model_file_name_head = load_model_file_name_head)
+	aaeexp_machine = aaeexp.aaeexp(input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = match_coef, train_label_file_name = train_label_file_name, val_label_file_name = val_label_file_name, test_label_file_name = test_label_file_name, load_model_file_name_head = None)
 
-	#aaeexp_machine.train()
-	aaeexp_machine.train(W_e_file_name = "dummy")
+	aaeexp_machine.train()
 
 
 if __name__ == "__main__":

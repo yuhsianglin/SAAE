@@ -66,7 +66,7 @@ class dataset(object):
 		return self.batch_counter >= 0 and self.batch_counter < self.batch_num
 
 
-	def initialize_batch(self, dataset_name):
+	def initialize_batch(self, dataset_name, shuffle = True):
 		self.dataset_name = dataset_name
 		if self.dataset_name == 'train':
 			X_used = self.train_X
@@ -95,9 +95,15 @@ class dataset(object):
 			# Use full batch => do not permute
 			self.index_matrix = np.array(range(instance_num))
 		elif self.remaining_batch_size < batch_size_spec:
-			self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+			if shuffle:
+				self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+			else:
+				self.index_matrix = np.append(np.array(range(instance_num)), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
 		else:
-			self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
+			if shuffle:
+				self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
+			else:
+				self.index_matrix = np.array(range(instance_num)).astype(np.int32)
 
 		self.index_matrix = self.index_matrix.reshape(self.batch_num, batch_size_spec)
 

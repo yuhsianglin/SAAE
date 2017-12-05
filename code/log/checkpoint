@@ -1,2 +1,0 @@
-model_checkpoint_path: "log_25_lrn_0p02_data_AwA_match_1_adagrad"
-all_model_checkpoint_paths: "log_25_lrn_0p02_data_AwA_match_1_adagrad"
