@@ -11,7 +11,7 @@ import attrdataset
 
 
 class aaeexp(object):
-	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = 1, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, load_model_file_name_head = None):
+	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = 1, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, load_model_file_directory = None):
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
 		self.class_num = class_num
@@ -24,7 +24,7 @@ class aaeexp(object):
 		self.log_file_name_head = log_file_name_head
 		self.write_model_log_period = write_model_log_period
 		self.match_coef = match_coef
-		self.load_model_file_name_head = load_model_file_name_head
+		self.load_model_file_directory = load_model_file_directory
 
 		self.data = dataset.dataset(train_file_name, val_file_name, test_file_name, class_num, batch_size_train = batch_size_train, train_label_file_name = train_label_file_name, val_label_file_name = val_label_file_name, test_label_file_name = test_label_file_name)
 		self.gaus_sample = dataset.dataset(gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, class_num, batch_size_train = batch_size_train)
@@ -38,7 +38,7 @@ class aaeexp(object):
 		
 		sess = tf.Session()
 
-		if self.load_model_file_name_head == None:
+		if self.load_model_file_directory == None:
 			rng_ae = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
 			W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng_ae, maxval = rng_ae ), name = "W_e" )
 			b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
@@ -104,8 +104,8 @@ class aaeexp(object):
 
 			saver = tf.train.Saver()
 		else:
-			saver = tf.train.import_meta_graph(self.load_model_file_name_head + ".meta")
-			saver.restore(sess, tf.train.latest_checkpoint("./log/"))
+			saver = tf.train.import_meta_graph(self.load_model_file_directory + "/log.meta")
+			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_file_directory))
 
 			graph = tf.get_default_graph()
 
@@ -131,7 +131,7 @@ class aaeexp(object):
 			#print(train_gen_step)
 			gen_loss = tf.get_collection("gen_loss")[0]
 
-			train_disc_step = tf.get_collection("train_disc_step")[0]
+			#train_disc_step = tf.get_collection("train_disc_step")[0]
 			disc_loss = tf.get_collection("disc_loss")[0]
 
 			recon_match_loss = tf.get_collection("recon_match_loss")[0]
