@@ -7,11 +7,17 @@ import numpy as np
 
 
 class dataset(object):
-	def __init__(self, train_file_name, val_file_name, test_file_name, class_num, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
+	def __init__(self, train_file_name, val_file_name, test_file_name, class_num, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
 		self.class_num = class_num
-		self.train_X, self.train_Y = self.get_XY(train_file_name)
-		self.val_X, self.val_Y = self.get_XY(val_file_name)
-		self.test_X, self.test_Y = self.get_XY(test_file_name)
+		if train_label_file_name == None:
+			self.train_X, self.train_Y = self.get_XY(train_file_name)
+			self.val_X, self.val_Y = self.get_XY(val_file_name)
+			self.test_X, self.test_Y = self.get_XY(test_file_name)
+		else:
+			self.train_X, self.train_Y = self.get_XY_npy(train_file_name, train_label_file_name)
+			self.val_X, self.val_Y = self.get_XY_npy(val_file_name, val_label_file_name)
+			self.test_X, self.test_Y = self.get_XY_npy(test_file_name, test_label_file_name)
+
 
 		# For batch_size_{} == -1, will be full batch_size later
 		self.batch_size_train = batch_size_train
@@ -23,6 +29,13 @@ class dataset(object):
 		self.batch_counter = -1
 		self.remaining_batch_size = 0
 		self.current_batch_size = 0
+
+
+	def get_XY_npy(self, x_file_name, y_file_name):
+		X = np.load(x_file_name)
+		Y = np.load(y_file_name)
+
+		return [X, Y]
 
 
 	def get_XY(self, file_name):
@@ -53,7 +66,7 @@ class dataset(object):
 		return self.batch_counter >= 0 and self.batch_counter < self.batch_num
 
 
-	def initialize_batch(self, dataset_name):
+	def initialize_batch(self, dataset_name, shuffle = True):
 		self.dataset_name = dataset_name
 		if self.dataset_name == 'train':
 			X_used = self.train_X
@@ -82,9 +95,15 @@ class dataset(object):
 			# Use full batch => do not permute
 			self.index_matrix = np.array(range(instance_num))
 		elif self.remaining_batch_size < batch_size_spec:
-			self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+			if shuffle:
+				self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+			else:
+				self.index_matrix = np.append(np.array(range(instance_num)), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
 		else:
-			self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
+			if shuffle:
+				self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
+			else:
+				self.index_matrix = np.array(range(instance_num)).astype(np.int32)
 
 		self.index_matrix = self.index_matrix.reshape(self.batch_num, batch_size_spec)
 

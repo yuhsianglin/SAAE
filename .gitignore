@@ -15,3 +15,9 @@ log*.*
 data/*
 
 fig_*.pdf
+
+CUB_200_2011_1202
+AwA
+gaussian
+
+checkpoint
