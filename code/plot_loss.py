@@ -5,9 +5,10 @@ import numpy as np
 import re
 
 
-log_file = open("./log/log_24_lrn_0p02_data_AwA_match_1_adagrad.txt")
+log_file = open("./log/log_26_lrn_0p02_data_AwA_match_1_adagrad.txt")
 
 epoch = []
+epoch_acc = []
 train_gen_loss = []
 train_disc_loss = []
 #val_gen_loss = []
@@ -26,8 +27,12 @@ for line in log_file:
 		train_disc_loss.append(float(_train_disc_loss))
 		#val_gen_loss.append(float(_val_gen_loss))
 		#val_disc_loss.append(float(_val_disc_loss))
-		test_top_1_accuracy.append(float(_test_top_1_accuracy))
-		test_top_5_accuracy.append(float(_test_top_5_accuracy))
+		if _test_top_1_accuracy == "N/A":
+			pass
+		else:
+			epoch_acc.append(int(_epoch))
+			test_top_1_accuracy.append(float(_test_top_1_accuracy))
+			test_top_5_accuracy.append(float(_test_top_5_accuracy))
 
 
 plt.figure(1)
@@ -40,7 +45,7 @@ plt.plot(epoch, train_disc_loss, "r-", label = "train disc loss")
 plt.legend()
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.savefig('./log/fig_24_lrn_0p02_data_AwA_match_1_adagrad.pdf')
+plt.savefig('./log/fig_26_lrn_0p02_data_AwA_match_1_adagrad.pdf')
 
 """
 plt.figure(2)
@@ -71,7 +76,7 @@ plt.savefig('./log/fig_10_lrn_0p02_data_1202_val.pdf')
 
 
 plt.figure(2)
-plt.plot(epoch, test_top_1_accuracy, "k-", label = "test accuracy")
+plt.plot(epoch_acc, test_top_1_accuracy, "k-", label = "test accuracy")
 #plt.plot(epoch, val_gen_loss, "k--", label = "val gen loss")
 #plt.plot(epoch, val_gen_loss, "r--", label = "val disc loss")
 #plt.xlim([-1, 50])
@@ -79,6 +84,6 @@ plt.plot(epoch, test_top_1_accuracy, "k-", label = "test accuracy")
 plt.legend(loc = 'lower right')
 plt.xlabel("Epoch")
 plt.ylabel("Test accuracy")
-plt.savefig('./log/fig_24_lrn_0p02_data_AwA_match_1_adagrad_accuracy.pdf')
+plt.savefig('./log/fig_26_lrn_0p02_data_AwA_match_1_adagrad_accuracy.pdf')
 
 
