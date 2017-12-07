@@ -75,8 +75,7 @@ class aaeexp(object):
 			Z2_neg = tf.sigmoid( tf.matmul(Z1_neg, W2) + b2 )
 			disc_res_neg = Z2_neg
 
-			recon_loss = ave_entropy
-			match_loss = tf.reduce_mean(tf.pow(T - H, 2))
+			recon_match_loss = ave_entropy + self.match_coef * tf.reduce_mean(tf.pow(T - H, 2))
 
 			gen_loss = tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
 			disc_loss = -tf.reduce_mean( tf.log( disc_res_pos ) ) - tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
@@ -84,14 +83,14 @@ class aaeexp(object):
 			tf.add_to_collection("gen_loss", gen_loss)
 			tf.add_to_collection("disc_loss", disc_loss)
 
-			tf.add_to_collection("match_loss", match_loss)
-			tf.add_to_collection("recon_loss", recon_loss)
+			tf.add_to_collection("recon_match_loss", recon_match_loss)
 
 			#train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
 			#train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
 
-			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + match_loss + gen_loss)
-			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
+			#train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_match_loss + gen_loss)
+			#train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
+			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_match_loss)
 
 			tf.add_to_collection("train_gen_step", train_gen_step)
 			#tf.add_to_collection("train_disc_step", train_disc_step)
@@ -133,11 +132,10 @@ class aaeexp(object):
 			#print(train_gen_step)
 			gen_loss = tf.get_collection("gen_loss")[0]
 
-			train_disc_step = tf.get_collection("train_disc_step")[0]
+			#train_disc_step = tf.get_collection("train_disc_step")[0]
 			disc_loss = tf.get_collection("disc_loss")[0]
 
-			recon_loss = tf.get_collection("recon_loss")[0]
-			match_loss = tf.get_collection("match_loss")[0]
+			recon_match_loss = tf.get_collection("recon_match_loss")[0]
 
 
 			"""
@@ -157,7 +155,7 @@ class aaeexp(object):
 
 
 		log_file = open(self.log_file_name_head + '.txt', 'w+')
-		self.write_log(log_file, -1, 0.0, 0.0, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t)
+		self.write_log(log_file, -1, 0.0, 0.0, X, Z, T, sess, gen_loss, disc_loss, recon_match_loss, t, neg_dist_from_t)
 		#self.write_log(log_file, -1, 0.0, X, Z, None, sess, gen_loss, disc_loss)
 
 		total_time_begin = time.time()
@@ -175,9 +173,9 @@ class aaeexp(object):
 				T_batch = self.attrdata.next_batch("train", index_vector)
 				feed_dict = { X: X_batch, Z: Z_batch, T: T_batch }
 				#feed_dict = { X: X_batch, Z: Z_batch }
-				_, train_gen_loss_got, recon_loss_got, match_loss_got = sess.run([train_gen_step, gen_loss, recon_loss, match_loss], feed_dict = feed_dict)
-				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
-				#train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
+				_, train_gen_loss_got, recon_match_loss_got = sess.run([train_gen_step, gen_loss, recon_match_loss], feed_dict = feed_dict)
+				#_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
+				train_disc_loss_got = sess.run(disc_loss, feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
 			time_end = time.time()
@@ -188,11 +186,11 @@ class aaeexp(object):
 
 			if (epoch + 1) % self.write_model_log_period == 0:
 				saver.save(sess, self.log_file_name_head)
-				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, recon_loss_given = recon_loss_got, match_loss_given = match_loss_got, write_test = True)
+				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, recon_match_loss_given = recon_match_loss_got, write_test = True)
 				#self.write_model_param(sess, W_e, b_e, b_d, W1, b1, W2, b2)
 				#self.write_H(X, H, sess)
 			else:
-				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, recon_loss_given = recon_loss_got, match_loss_given = match_loss_got, write_test = False)
+				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, recon_match_loss_given = recon_match_loss_got, write_test = False)
 			
 			# Tried going through again the full training set to evaluate training loss
 			# Confirmed: Does not make difference
@@ -207,7 +205,7 @@ class aaeexp(object):
 
 
 	# Write log
-	def write_log(self, log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t, train_gen_loss_given = None, train_disc_loss_given = None, recon_loss_given = None, match_loss_given = None, write_test = True):
+	def write_log(self, log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_match_loss, t, neg_dist_from_t, train_gen_loss_given = None, train_disc_loss_given = None, recon_match_loss_given = None, write_test = True):
 		if train_gen_loss_given == None or train_disc_loss_given == None:
 			self.data.initialize_batch('train_init')
 			self.gaus_sample.initialize_batch('train_init')
@@ -221,9 +219,9 @@ class aaeexp(object):
 			T_batch = self.attrdata.next_batch("train", index_vector)
 			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
 			#feed_dict = { X: X_full, Z: Z_batch }
-			train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got = sess.run([gen_loss, disc_loss, recon_loss, match_loss], feed_dict = feed_dict)
+			train_gen_loss_got, train_disc_loss_got, recon_match_loss_got = sess.run([gen_loss, disc_loss, recon_match_loss], feed_dict = feed_dict)
 		else:
-			train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got = [train_gen_loss_given, train_disc_loss_given, recon_loss_given, match_loss_given]
+			train_gen_loss_got, train_disc_loss_got, recon_match_loss_got = [train_gen_loss_given, train_disc_loss_given, recon_match_loss_given]
 
 		"""
 		self.data.initialize_batch('val')
@@ -260,11 +258,11 @@ class aaeexp(object):
 			#print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
 			#log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
 
-			print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
+			print_string = "%d\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
 		else:
-			print_string = "%d\t%f\t%f\t%f\t%f\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got, time_epoch, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_loss_got, match_loss_got, time_epoch, total_time)
+			print_string = "%d\t%f\t%f\t%f\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, time_epoch, total_time)
+			log_string = '%d\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, time_epoch, total_time)
 
 		print(print_string)
 		log_file.write(log_string)

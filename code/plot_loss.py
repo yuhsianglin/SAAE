@@ -27,7 +27,7 @@ for line in log_file:
 		train_disc_loss.append(float(_train_disc_loss))
 		#val_gen_loss.append(float(_val_gen_loss))
 		#val_disc_loss.append(float(_val_disc_loss))
-		if _test_top_1_accuracy == "N/A":
+		if _test_top_1_accuracy == "--------":
 			pass
 		else:
 			epoch_acc.append(int(_epoch))

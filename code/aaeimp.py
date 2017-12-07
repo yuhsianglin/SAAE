@@ -10,7 +10,7 @@ import dataset
 import attrdataset
 
 
-class aaeexp(object):
+class aaeimp(object):
 	def __init__(self, input_dim, hid_dim, class_num, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = 1, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, load_model_file_directory = None):
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
@@ -65,8 +65,8 @@ class aaeexp(object):
 
 			ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
 
-			# Discriminate positive samples
-			Z1_pos = tf.sigmoid( tf.matmul(Z, W1) + b1 )
+			# Discriminate positive samples---use text feature
+			Z1_pos = tf.sigmoid( tf.matmul(T, W1) + b1 )
 			Z2_pos = tf.sigmoid( tf.matmul(Z1_pos, W2) + b2 )
 			disc_res_pos = Z2_pos
 
@@ -90,7 +90,7 @@ class aaeexp(object):
 			#train_gen_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(gen_loss)
 			#train_disc_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(disc_loss)
 
-			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + match_loss + gen_loss)
+			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + gen_loss)
 			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
 
 			tf.add_to_collection("train_gen_step", train_gen_step)
@@ -133,7 +133,7 @@ class aaeexp(object):
 			#print(train_gen_step)
 			gen_loss = tf.get_collection("gen_loss")[0]
 
-			train_disc_step = tf.get_collection("train_disc_step")[0]
+			#train_disc_step = tf.get_collection("train_disc_step")[0]
 			disc_loss = tf.get_collection("disc_loss")[0]
 
 			recon_loss = tf.get_collection("recon_loss")[0]
