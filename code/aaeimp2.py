@@ -9,7 +9,7 @@ import tensorflow as tf
 import dataset
 
 
-class aaeimp(object):
+class aaeimp2(object):
 	def __init__(self,
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
@@ -127,8 +127,8 @@ class aaeimp(object):
 			tf.add_to_collection("disc_loss", disc_loss)
 
 			# Training objectives
-			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_recon * recon_loss + gen_loss)
-			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
+			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_recon * recon_loss + 100.0 * gen_loss)
+			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(100.0 * disc_loss)
 			tf.add_to_collection("train_gen_step", train_gen_step)
 			tf.add_to_collection("train_disc_step", train_disc_step)
 

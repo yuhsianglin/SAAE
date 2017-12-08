@@ -16,15 +16,17 @@ def main(_):
 
 	d1 = 100
 
-	lrn_rate = 0.02
+	lrn_rate = 0.2
 	train_batch_size = 16
-	epoch_max = 3
+	epoch_max = 500
+
+	coef_recon = 0.01
 
 	train_size = 24295
 	test_size = 6180
 	#reg_lambda = 1.0 / train_size
 
-	save_model_period = 1
+	save_model_period = 10
 
 	train_file_name = "../AwA/xTrain_scaled.npy"
 	test_file_name = "../AwA/xTest_scaled.npy"
@@ -35,7 +37,7 @@ def main(_):
 	train_attr_file_name = "../AwA/sTrain_scaled.npy"
 	test_attr_file_name = "../AwA/sTest_scaled.npy"
 
-	log_directory = "./log/log_28_imp_lrn_0p02_data_AwA_adagrad"
+	log_directory = "./log/log_31_imp_AwA_adagrad_lrn_0p2_recon_0p01"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -46,6 +48,7 @@ def main(_):
 	aaeimp_machine = aaeimp.aaeimp(
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max,
+		coef_recon = coef_recon,
 		train_file_name = train_file_name,
 		test_file_name = test_file_name,
 		train_label_file_name = train_label_file_name,

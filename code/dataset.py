@@ -57,7 +57,7 @@ class dataset(object):
 		# Size of the last mini-batch
 		self.remaining_batch_size = instance_num - ( self.batch_num - 1 ) * batch_size_spec
 
-		if batch_num == 1:
+		if self.batch_num == 1:
 			# Use full batch => do not shuffle even if shuffle == True
 			self.index_matrix = np.array(range(instance_num)).astype(np.int32)
 		elif self.remaining_batch_size < batch_size_spec:
@@ -80,7 +80,7 @@ class dataset(object):
 
 
 	def next_batch(self):
-		if not has_next_batch():
+		if not self.has_next_batch():
 			return None
 
 		if self.batch_counter == self.batch_num - 1:
@@ -94,21 +94,21 @@ class dataset(object):
 		if self.dataset_name == "train":
 			output_X = self.train_X[index_vector, :]
 
-			if self.train_Y != None:
+			if self.train_Y.any():
 				output_Y = self.train_Y[index_vector]
 				# If use one-hot vector for Y, use the following line
 				# output_Y = self.train_Y[index_vector, :]
 		elif self.dataset_name == "val":
 			output_X = self.val_X[index_vector, :]
 
-			if self.val_Y != None:
+			if self.val_Y.any():
 				output_Y = self.val_Y[index_vector]
 				# If use one-hot vector for Y, use the following line
 				# output_Y = self.val_Y[index_vector, :]
 		elif self.dataset_name == "test":
 			output_X = self.test_X[index_vector, :]
 
-			if self.test_Y != None:
+			if self.test_Y.any():
 				output_Y = self.test_Y[index_vector]
 				# If use one-hot vector for Y, use the following line
 				# output_Y = self.test_Y[index_vector, :]
@@ -127,7 +127,7 @@ class dataset(object):
 
 
 	# Retrieve next batch with given index_vector
-	def next_batch(self, dataset_name, index_vector, get_y = False):
+	def get_batch(self, dataset_name, index_vector, get_y = False):
 		if dataset_name == "train":
 			output_X = self.train_X[index_vector, :]
 
