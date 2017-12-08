@@ -7,7 +7,7 @@ import time
 import os
 import tensorflow as tf
 import dataset
-import aaeimp3
+import aaeimp4
 
 
 def main(_):
@@ -37,7 +37,7 @@ def main(_):
 	train_attr_file_name = "../AwA/sTrain_scaled.npy"
 	test_attr_file_name = "../AwA/sTest_scaled.npy"
 
-	log_directory = "./log/log_35_imp3_AwA_adagrad_lrn_0p02"
+	log_directory = "./log/log_36_imp4_AwA_adagrad_lrn_0p02"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -45,7 +45,7 @@ def main(_):
 	#load_model_directory = "./log/log_27_lrn_0p02_data_AwA_match_1_adagrad_2"
 	load_model_directory = None
 
-	aaeimp_machine = aaeimp3.aaeimp3(
+	aaeimp_machine = aaeimp4.aaeimp4(
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max,
 		coef_recon = coef_recon,
