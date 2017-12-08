@@ -57,9 +57,9 @@ class dataset(object):
 		# Size of the last mini-batch
 		self.remaining_batch_size = instance_num - ( self.batch_num - 1 ) * batch_size_spec
 
-		if batch_size_spec == instance_num:
-			# Use full batch => do not permute
-			self.index_matrix = np.array(range(instance_num))
+		if batch_num == 1:
+			# Use full batch => do not shuffle even if shuffle == True
+			self.index_matrix = np.array(range(instance_num)).astype(np.int32)
 		elif self.remaining_batch_size < batch_size_spec:
 			if shuffle:
 				self.index_matrix = np.append(np.random.permutation(instance_num), -np.ones(batch_size_spec - self.remaining_batch_size)).astype(np.int32)

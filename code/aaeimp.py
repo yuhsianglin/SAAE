@@ -79,7 +79,7 @@ class aaeimp(object):
 			# Input image features, shape = [batch_size, input_dim]
 			X = tf.placeholder( tf.float32, [None, self.input_dim], name = "X" )
 			# Positive samples, shape [batch_size, hid_dim]
-			Z = tf.placeholder( tf.float32, [None, self.hid_dim], name = "Z" )
+			# Z = tf.placeholder( tf.float32, [None, self.hid_dim], name = "Z" )
 			# Text features/attributes describing the class, shape [batch_size, hid_dim]
 			T = tf.placeholder( tf.float32, [None, self.hid_dim], name = "T" )
 			# Test time, the text features/attributes of a single unseen class
@@ -113,8 +113,8 @@ class aaeimp(object):
 			disc_res_neg = Z2_neg
 
 			# Explicit match to text features/attributes
-			# match_loss = tf.reduce_mean( tf.reduce_sum( tf.pow(T - H, 2), axis = 1 ) )
-			# tf.add_to_collection("match_loss", match_loss)
+			match_loss = tf.reduce_mean( tf.reduce_sum( tf.pow(T - H, 2), axis = 1 ) )
+			tf.add_to_collection("match_loss", match_loss)
 
 			# GAN
 			gen_loss = tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
@@ -150,139 +150,111 @@ class aaeimp(object):
 			b2 = graph.get_tensor_by_name("b2:0")
 
 			X = graph.get_tensor_by_name("X:0")
-			Z = graph.get_tensor_by_name("Z:0")
+			# Z = graph.get_tensor_by_name("Z:0")
 			T = graph.get_tensor_by_name("T:0")
 			t = graph.get_tensor_by_name("t:0")
 
 			gen_loss = tf.get_collection("gen_loss")[0]
 			disc_loss = tf.get_collection("disc_loss")[0]
 			recon_loss = tf.get_collection("recon_loss")[0]
-			# match_loss = tf.get_collection("match_loss")[0]
+			match_loss = tf.get_collection("match_loss")[0]
 			train_gen_step = tf.get_collection("train_gen_step")[0]
 			train_disc_step = tf.get_collection("train_disc_step")[0]
 			neg_dist_from_t = tf.get_collection("neg_dist_from_t")[0]
 
-
+		epoch = 0
 		log_file = open(self.log_file_name_head + ".txt", "w+")
-		self.write_log(log_file, sess, X, Z, T, t, gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t, epoch = 0, time_epoch = 0.0, total_time = 0.0, train_recon_loss_given = None, train_match_loss_given = None, train_gen_loss_given = None, train_disc_loss_given = None, write_test = True)
+
+		self.write_log(log_file,
+			sess, X, T, t,
+			gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+			epoch = epoch, epoch_time = 0.0, total_time = 0.0)
 
 		total_time_begin = time.time()
-		epoch = 0
-		while epoch < self.epoch_max:
-			time_begin = time.time()
+		for epoch in range(1, self.epoch_max + 1):
+			epoch_time_begin = time.time()
 
-			self.data.initialize_batch("train")		# WE ARE HERE
-			#self.gaus_sample.initialize_batch("train")
+			self.data.initialize_batch("train", batch_size = self.train_batch_size)
 			while self.data.has_next_batch():
-				X_batch, Y_batch, _, _, index_vector = self.data.next_batch()
-				#Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-				#T_batch = self.attr_data.next_batch(index_vector)
+				X_batch, Y_batch, index_vector, _ = self.data.next_batch()
 				T_batch = self.attr_data.next_batch("train", index_vector)
-				feed_dict = { X: X_batch, Z: T_batch }
-				_, train_gen_loss_got, train_recon_loss_got = sess.run([train_gen_step, gen_loss, recon_loss], feed_dict = feed_dict)
+				feed_dict = {X: X_batch, T: T_batch}
+				_, train_gen_loss_got, train_recon_loss_got, train_match_loss_got = sess.run([train_gen_step, gen_loss, recon_loss, match_loss], feed_dict = feed_dict)
 				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
-			time_end = time.time()
-			time_epoch = time_end - time_begin
+			epoch_time = time.time() - epoch_time_begin
+			total_time = time.time() - total_time_begin
 
-			total_time_end = time.time()
-			total_time = total_time_end - total_time_begin
-
-			epoch += 1
-
-			if epoch % self.write_model_log_period == 0:
+			if epoch % self.save_model_period == 0:
 				saver.save(sess, self.log_file_name_head)
-				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, train_recon_loss_given = recon_loss_got, write_test = True)
-				#self.write_model_param(sess, W_e, b_e, b_d, W1, b1, W2, b2)
-				#self.write_H(X, H, sess)
+				self.write_log(log_file,
+					sess, X, T, t,
+					gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
+					train_gen_loss_given = train_gen_loss_got,
+					train_disc_loss_given = train_disc_loss_got,
+					train_recon_loss_given = train_recon_loss_got,
+					train_match_loss_given = train_match_loss_got,
+					eval_test = True)
 			else:
-				self.write_log(log_file, epoch, time_epoch, total_time, X, Z, T, sess, gen_loss, disc_loss, recon_loss, match_loss, t, neg_dist_from_t, train_gen_loss_given = train_gen_loss_got, train_disc_loss_given = train_disc_loss_got, train_recon_loss_given = train_recon_loss_got, write_test = False)
+				self.write_log(log_file,
+					sess, X, T, t,
+					gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
+					train_gen_loss_given = train_gen_loss_got,
+					train_disc_loss_given = train_disc_loss_got,
+					train_recon_loss_given = train_recon_loss_got,
+					train_match_loss_given = train_match_loss_got,
+					eval_test = False)
 		# End of all epochs
 		log_file.close()
 
 
 	# Write log
-	def write_log(self, log_file, sess, X, Z, T, t, gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t, epoch = 0, time_epoch = 0.0, total_time = 0.0, train_recon_loss_given = None, train_match_loss_given = None, train_gen_loss_given = None, train_disc_loss_given = None, write_test = False):
-		if train_gen_loss_given == None or train_disc_loss_given == None:
-			self.data.initialize_batch('train_init')
-			self.gaus_sample.initialize_batch('train_init')
-			#self.attr_data.initialize_batch('train_init')
-			#X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
-			#X_full, Y_full, _, _, _ = self.data.next_batch()
-			X_full, _, _, _, index_vector = self.data.next_batch()
-			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-			#T_batch = self.attr_data.next_batch(index_vector)
-			#T_batch = self.attr_data.next_batch("train", Y_full)
-			T_batch = self.attr_data.next_batch("train", index_vector)
-			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
-			#feed_dict = { X: X_full, Z: Z_batch }
-			train_gen_loss_got, train_disc_loss_got, recon_match_loss_got = sess.run([gen_loss, disc_loss, recon_match_loss], feed_dict = feed_dict)
+	def write_log(self, log_file,
+		sess, X, T, t,
+		gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+		epoch = 0, epoch_time = 0.0, total_time = 0.0,
+		train_gen_loss_given = None, train_disc_loss_given = None,
+		train_recon_loss_given = None, train_match_loss_given = None,
+		eval_test = False):
+
+		if train_gen_loss_given == None or \
+			train_disc_loss_given == None or \
+			train_recon_loss_given == None or \
+			train_match_loss_given == None:
+
+			# Use full batch for train
+			X_full = self.data.train_X
+			T_full = self.attr_data.train_X
+			feed_dict = {X: X_full, T: T_full}
+			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = sess.run([gen_loss, disc_loss, recon_loss, match_loss], feed_dict = feed_dict)
 		else:
-			train_gen_loss_got, train_disc_loss_got, recon_match_loss_got = [train_gen_loss_given, train_disc_loss_given, recon_match_loss_given]
+			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = [train_gen_loss_given, train_disc_loss_given, train_recon_loss_given, train_match_loss_given]
 
-		"""
-		self.data.initialize_batch('val')
-		self.gaus_sample.initialize_batch('val')
-		#self.attr_data.initialize_batch('val')
-		X_val_full, _, _, _, index_vector = self.data.next_batch()
-		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
-		#T_batch = self.attr_data.next_batch(index_vector)
-		T_batch = self.attr_data.next_batch("val", index_vector)
-		feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
-		#feed_dict = { X: X_val_full, Z: Z_val_full }
-		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
-		"""
-
-		if write_test == True:
+		if eval_test:
 			# Use full-batch for test
-			self.data.initialize_batch('test')
-			X_test_full, Y_test_full, _, _, _ = self.data.next_batch()
+			X_test_full = self.data.test_X
 			T_test_full = self.attr_data.test_X
 			neg_dist_matrix = []
 			for t_vec in T_test_full:
-				feed_dict = { X: X_test_full, t: t_vec }
+				feed_dict = {X: X_test_full, t: t_vec}
 				neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
-
-			k_of_topk = 5
-			test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
 
 			k_of_topk = 1
 			test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
 
+			k_of_topk = 5
+			test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+
 			y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
 
-
-			#print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
-			#log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch + 1, train_gen_loss_got, train_disc_loss_got, val_gen_loss_got, val_disc_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
-
-			print_string = "%d\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, time_epoch, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, test_top_1_accuracy, test_top_5_accuracy, time_epoch, total_time)
+			print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
 		else:
-			print_string = "%d\t%f\t%f\t%f\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, time_epoch, total_time)
-			log_string = '%d\t%f\t%f\t%f\tN/A\tN/A\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, recon_match_loss_got, time_epoch, total_time)
+			print_string = "%d\t%f\t%f\t%f\t%f\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
 
 		print(print_string)
 		log_file.write(log_string)
-
-	"""
-	def write_model_param(self, sess, W_e, b_e, b_d, W1, b1, W2, b2):
-		np.save(self.log_file_name_head + '_W_e.npy', sess.run(W_e))
-		np.save(self.log_file_name_head + '_b_e.npy', sess.run(b_e))
-		np.save(self.log_file_name_head + '_b_d.npy', sess.run(b_d))
-		np.save(self.log_file_name_head + '_W1.npy', sess.run(W1))
-		np.save(self.log_file_name_head + '_b1.npy', sess.run(b1))
-		np.save(self.log_file_name_head + '_W2.npy', sess.run(W2))
-		np.save(self.log_file_name_head + '_b2.npy', sess.run(b2))
-	"""
-
-	"""
-	def write_H(self, X, H, sess):
-		self.data.initialize_batch('train_init')
-		X_full, _, _, _, _ = self.data.next_batch()
-		feed_dict = { X: X_full }
-		H_got = sess.run(H, feed_dict = feed_dict)
-		np.save(self.log_file_name_head + '_H.npy', H_got)
-	"""
-
-	
