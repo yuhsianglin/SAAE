@@ -7,23 +7,29 @@ import numpy as np
 
 
 class dataset(object):
-	def __init__(self, train_file_name = None, val_file_name = None, test_file_name = None, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, class_num = None, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
-		self.class_num = class_num
-		if train_label_file_name == None:
-			self.train_X, self.train_Y = self.get_XY(train_file_name)
-			self.val_X, self.val_Y = self.get_XY(val_file_name)
-			self.test_X, self.test_Y = self.get_XY(test_file_name)
-		else:
-			self.train_X, self.train_Y = self.get_XY_npy(train_file_name, train_label_file_name)
-			self.val_X, self.val_Y = self.get_XY_npy(val_file_name, val_label_file_name)
-			self.test_X, self.test_Y = self.get_XY_npy(test_file_name, test_label_file_name)
+	def __init__(self, train_file_name = None, val_file_name = None, test_file_name = None, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None):
+		self.train_X = None
+		self.val_X = None
+		self.test_X = None
+		self.train_Y = None
+		self.val_Y = None
+		self.test_Y = None
 
+		if train_file_name != None:
+			self.train_X = np.load(train_file_name).astype(np.float32)
+		if val_file_name != None:
+			self.val_X = np.load(val_file_name).astype(np.float32)
+		if test_file_name != None:
+			self.test_X = np.load(test_file_name).astype(np.float32)
 
-		# For batch_size_{} == -1, will be full batch_size later
-		self.batch_size_train = batch_size_train
-		self.batch_size_val = batch_size_val
-		self.batch_size_test = batch_size_test
-		self.dataset_name = ''
+		if train_label_file_name != None:
+			self.train_Y = np.load(train_label_file_name).astype(np.int32)
+		if val_label_file_name != None:
+			self.val_Y = np.load(val_label_file_name).astype(np.int32)
+		if test_label_file_name != None:
+			self.test_Y = np.load(test_label_file_name).astype(np.int32)
+
+		self.dataset_name = ""
 		self.index_matrix = None
 		self.batch_num = 0
 		self.batch_counter = -1
@@ -31,60 +37,20 @@ class dataset(object):
 		self.current_batch_size = 0
 
 
-	def get_XY_npy(self, x_file_name, y_file_name):
-		X = np.load(x_file_name)
-		Y = np.load(y_file_name)
-
-		return [X, Y]
-
-
-	def get_XY(self, file_name):
-		X = []
-		Y = []
-
-		file = open(file_name, 'r')
-		for line in file:
-			xtmp = re.split(' |,', line)
-			digittmp = int(float(xtmp[-1]))
-			del xtmp[-1]
-			xtmp = list(np.array(xtmp).astype(np.float32))
-			X.append(xtmp)
-
-			# If use [0, N-1] indexing for Y, use the following line
-			Y.append(digittmp)
-
-			# If use one-hot vector for Y, use the following lines
-			#ytmp = np.zeros(self.class_num).astype(np.int32)
-			#ytmp[digittmp] = 1
-			#Y.append(list(ytmp))
-		file.close()
-
-		return [np.array(X).astype(np.float32), np.array(Y).astype(np.int32)]
-
-
-	def has_next_batch(self):
-		return self.batch_counter >= 0 and self.batch_counter < self.batch_num
-
-
-	def initialize_batch(self, dataset_name, shuffle = True):
+	def initialize_batch(self, dataset_name, batch_size = -1, shuffle = True):
 		self.dataset_name = dataset_name
-		if self.dataset_name == 'train':
-			X_used = self.train_X
-			batch_size_spec = self.batch_size_train
-		elif self.dataset_name == 'val':
-			X_used = self.val_X
-			batch_size_spec = self.batch_size_val
-		elif self.dataset_name == 'test':
-			X_used = self.test_X
-			batch_size_spec = self.batch_size_test
-		elif self.dataset_name == 'train_init':
-			X_used = self.train_X
-			batch_size_spec = -1
+		if self.dataset_name == "train":
+			X_using = self.train_X
+		elif self.dataset_name == "val":
+			X_using = self.val_X
+		elif self.dataset_name == "test":
+			X_using = self.test_X
 
-		instance_num = X_used.shape[0]
-
-		if batch_size_spec == -1:
+		instance_num = X_using.shape[0]
+		if batch_size == -1:
 			batch_size_spec = instance_num
+		else:
+			batch_size_spec = batch_size
 
 		# Number of mini-batches
 		self.batch_num = int(np.ceil(instance_num / batch_size_spec))
@@ -96,9 +62,9 @@ class dataset(object):
 			self.index_matrix = np.array(range(instance_num))
 		elif self.remaining_batch_size < batch_size_spec:
 			if shuffle:
-				self.index_matrix = np.append(np.random.permutation(instance_num), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+				self.index_matrix = np.append(np.random.permutation(instance_num), -np.ones(batch_size_spec - self.remaining_batch_size)).astype(np.int32)
 			else:
-				self.index_matrix = np.append(np.array(range(instance_num)), np.ones(batch_size_spec - self.remaining_batch_size)*(-1)).astype(np.int32)
+				self.index_matrix = np.append(np.array(range(instance_num)), -np.ones(batch_size_spec - self.remaining_batch_size)).astype(np.int32)
 		else:
 			if shuffle:
 				self.index_matrix = np.random.permutation(instance_num).astype(np.int32)
@@ -106,12 +72,17 @@ class dataset(object):
 				self.index_matrix = np.array(range(instance_num)).astype(np.int32)
 
 		self.index_matrix = self.index_matrix.reshape(self.batch_num, batch_size_spec)
-
 		self.batch_counter = 0
 
 
-	# Assert: there is next batch
+	def has_next_batch(self):
+		return self.batch_counter >= 0 and self.batch_counter < self.batch_num
+
+
 	def next_batch(self):
+		if not has_next_batch():
+			return None
+
 		if self.batch_counter == self.batch_num - 1:
 			index_vector = self.index_matrix[self.batch_num - 1, :self.remaining_batch_size]
 			self.current_batch_size = self.remaining_batch_size
@@ -119,33 +90,67 @@ class dataset(object):
 			index_vector = self.index_matrix[self.batch_counter, :]
 			self.current_batch_size = self.index_matrix.shape[1]
 
-		if self.dataset_name == 'train' or self.dataset_name == 'train_init':
+		output_Y = None
+		if self.dataset_name == "train":
 			output_X = self.train_X[index_vector, :]
 
-			output_Y = self.train_Y[index_vector]
-			# If use one-hot vector for Y, use the following line
-			#output_Y = self.train_Y[index_vector, :]
-		elif self.dataset_name == 'val':
+			if self.train_Y != None:
+				output_Y = self.train_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.train_Y[index_vector, :]
+		elif self.dataset_name == "val":
 			output_X = self.val_X[index_vector, :]
 
-			output_Y = self.val_Y[index_vector]
-			# If use one-hot vector for Y, use the following line
-			#output_Y = self.val_Y[index_vector, :]
-		elif self.dataset_name == 'test':
+			if self.val_Y != None:
+				output_Y = self.val_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.val_Y[index_vector, :]
+		elif self.dataset_name == "test":
 			output_X = self.test_X[index_vector, :]
 
-			output_Y = self.test_Y[index_vector]
-			# If use one-hot vector for Y, use the following line
-			#output_Y = self.test_Y[index_vector, :]
+			if self.test_Y != None:
+				output_Y = self.test_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.test_Y[index_vector, :]
 
-		batch_counter_output = self.batch_counter
+		this_batch_counter = self.batch_counter
 		self.batch_counter += 1
 		if self.batch_counter >= self.batch_num:
-			self.dataset_name = ''
+			self.dataset_name = ""
 			self.index_matrix = None
 			self.batch_num = 0
 			self.batch_counter = -1
 			self.remaining_batch_size = 0
 			self.current_batch_size = 0
 
-		return [output_X, output_Y, self.current_batch_size, batch_counter_output, index_vector]
+		return [output_X, output_Y, index_vector, this_batch_counter]
+
+
+	# Retrieve next batch with given index_vector
+	def next_batch(self, dataset_name, index_vector, get_y = False):
+		if dataset_name == "train":
+			output_X = self.train_X[index_vector, :]
+
+			if get_y:
+				output_Y = self.train_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.train_Y[index_vector, :]
+		elif dataset_name == "val":
+			output_X = self.val_X[index_vector, :]
+
+			if get_y:
+				output_Y = self.val_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.val_Y[index_vector, :]
+		elif dataset_name == "test":
+			output_X = self.test_X[index_vector, :]
+
+			if get_y:
+				output_Y = self.test_Y[index_vector]
+				# If use one-hot vector for Y, use the following line
+				# output_Y = self.test_Y[index_vector, :]
+
+		if get_y:
+			return [output_X, output_Y]
+		else:
+			return output_X

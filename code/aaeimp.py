@@ -7,28 +7,48 @@ import time
 import numpy as np
 import tensorflow as tf
 import dataset
-import attrdataset
 
 
 class aaeimp(object):
-	def __init__(self, input_dim, hid_dim, d1, lrn_rate, momentum, batch_size_train, epoch_max, reg_lambda, train_file_name, val_file_name, test_file_name, log_file_name_head, gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, attr_train_file_name, attr_val_file_name, attr_test_file_name, write_model_log_period, match_coef = 1, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, load_model_file_directory = None, class_num = None):
+	def __init__(self,
+		input_dim, hid_dim, d1,
+		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
+		train_file_name = None,
+		val_file_name = None,
+		test_file_name = None,
+		train_label_file_name = None,
+		val_label_file_name = None,
+		test_label_file_name = None,
+		train_attr_file_name = None,
+		val_attr_file_name = None,
+		test_attr_file_name = None,
+		log_file_name_head = None, save_model_period = 1,
+		load_model_directory = None):
+
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
-		self.class_num = class_num
 		self.d1 = d1
-		self.lrn_rate = lrn_rate
-		self.momentum = momentum
-		self.batch_size_train = batch_size_train
-		self.epoch_max = epoch_max
-		self.reg_lambda = reg_lambda
-		self.log_file_name_head = log_file_name_head
-		self.write_model_log_period = write_model_log_period
-		self.match_coef = match_coef
-		self.load_model_file_directory = load_model_file_directory
 
-		self.data = dataset.dataset(train_file_name, val_file_name, test_file_name, class_num, batch_size_train = batch_size_train, train_label_file_name = train_label_file_name, val_label_file_name = val_label_file_name, test_label_file_name = test_label_file_name)
-		self.gaus_sample = dataset.dataset(gaus_train_file_name, gaus_val_file_name, gaus_test_file_name, class_num, batch_size_train = batch_size_train)
-		self.attrdata = attrdataset.attrdataset(attr_train_file_name, attr_val_file_name, attr_test_file_name)
+		self.lrn_rate = lrn_rate
+		self.train_batch_size = train_batch_size
+		self.epoch_max = epoch_max
+		self.momentum = momentum
+
+		self.log_file_name_head = log_file_name_head
+		self.save_model_period = save_model_period
+		self.load_model_directory = load_model_directory
+
+		self.data = dataset.dataset(
+			train_file_name = train_file_name,
+			val_file_name = val_file_name,
+			test_file_name = test_file_name,
+			train_label_file_name = train_label_file_name,
+			val_label_file_name = val_label_file_name,
+			test_label_file_name = test_label_file_name)
+		self.attr_data = dataset.dataset(
+			train_file_name = train_attr_file_name,
+			val_file_name = val_attr_file_name,
+			test_file_name = test_attr_file_name)
 
 
 	def train(self):
@@ -151,13 +171,13 @@ class aaeimp(object):
 		while epoch < self.epoch_max:
 			time_begin = time.time()
 
-			self.data.initialize_batch("train")
+			self.data.initialize_batch("train")		# WE ARE HERE
 			#self.gaus_sample.initialize_batch("train")
 			while self.data.has_next_batch():
 				X_batch, Y_batch, _, _, index_vector = self.data.next_batch()
 				#Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-				#T_batch = self.attrdata.next_batch(index_vector)
-				T_batch = self.attrdata.next_batch("train", index_vector)
+				#T_batch = self.attr_data.next_batch(index_vector)
+				T_batch = self.attr_data.next_batch("train", index_vector)
 				feed_dict = { X: X_batch, Z: T_batch }
 				_, train_gen_loss_got, train_recon_loss_got = sess.run([train_gen_step, gen_loss, recon_loss], feed_dict = feed_dict)
 				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
@@ -187,14 +207,14 @@ class aaeimp(object):
 		if train_gen_loss_given == None or train_disc_loss_given == None:
 			self.data.initialize_batch('train_init')
 			self.gaus_sample.initialize_batch('train_init')
-			#self.attrdata.initialize_batch('train_init')
+			#self.attr_data.initialize_batch('train_init')
 			#X_full, Y_full, current_batch_size, batch_counter, index_vector = self.data.next_batch()
 			#X_full, Y_full, _, _, _ = self.data.next_batch()
 			X_full, _, _, _, index_vector = self.data.next_batch()
 			Z_batch, _, _, _, _ = self.gaus_sample.next_batch()
-			#T_batch = self.attrdata.next_batch(index_vector)
-			#T_batch = self.attrdata.next_batch("train", Y_full)
-			T_batch = self.attrdata.next_batch("train", index_vector)
+			#T_batch = self.attr_data.next_batch(index_vector)
+			#T_batch = self.attr_data.next_batch("train", Y_full)
+			T_batch = self.attr_data.next_batch("train", index_vector)
 			feed_dict = { X: X_full, Z: Z_batch, T: T_batch }
 			#feed_dict = { X: X_full, Z: Z_batch }
 			train_gen_loss_got, train_disc_loss_got, recon_match_loss_got = sess.run([gen_loss, disc_loss, recon_match_loss], feed_dict = feed_dict)
@@ -204,11 +224,11 @@ class aaeimp(object):
 		"""
 		self.data.initialize_batch('val')
 		self.gaus_sample.initialize_batch('val')
-		#self.attrdata.initialize_batch('val')
+		#self.attr_data.initialize_batch('val')
 		X_val_full, _, _, _, index_vector = self.data.next_batch()
 		Z_val_full, _, _, _, _ = self.gaus_sample.next_batch()
-		#T_batch = self.attrdata.next_batch(index_vector)
-		T_batch = self.attrdata.next_batch("val", index_vector)
+		#T_batch = self.attr_data.next_batch(index_vector)
+		T_batch = self.attr_data.next_batch("val", index_vector)
 		feed_dict = { X: X_val_full, Z: Z_val_full, T: T_batch }
 		#feed_dict = { X: X_val_full, Z: Z_val_full }
 		val_gen_loss_got, val_disc_loss_got = sess.run([gen_loss, disc_loss], feed_dict = feed_dict)
@@ -218,7 +238,7 @@ class aaeimp(object):
 			# Use full-batch for test
 			self.data.initialize_batch('test')
 			X_test_full, Y_test_full, _, _, _ = self.data.next_batch()
-			T_test_full = self.attrdata.test_X
+			T_test_full = self.attr_data.test_X
 			neg_dist_matrix = []
 			for t_vec in T_test_full:
 				feed_dict = { X: X_test_full, t: t_vec }
