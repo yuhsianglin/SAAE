@@ -7,7 +7,7 @@ import numpy as np
 
 
 class dataset(object):
-	def __init__(self, train_file_name = None, val_file_name = None, test_file_name = None, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, class_num = None, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
+	def __init__(self, train_file_name, val_file_name, test_file_name, class_num, train_label_file_name = None, val_label_file_name = None, test_label_file_name = None, batch_size_train = -1, batch_size_val = -1, batch_size_test = -1):
 		self.class_num = class_num
 		if train_label_file_name == None:
 			self.train_X, self.train_Y = self.get_XY(train_file_name)
