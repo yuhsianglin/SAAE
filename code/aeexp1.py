@@ -96,8 +96,8 @@ class aeexp1(object):
 			tf.add_to_collection("train_step", train_step)
 
 			# Test time
-			neg_dist_from_t = -tf.reduce_sum( tf.pow(H_attr - t, 2), axis = 1 )
-			tf.add_to_collection("neg_dist_from_t", neg_dist_from_t)
+			dist_from_t = tf.reduce_sum( tf.pow(H_attr - t, 2), axis = 1 )
+			tf.add_to_collection("dist_from_t", dist_from_t)
 
 			# --Set up graph--
 			sess.run(tf.global_variables_initializer())
@@ -118,14 +118,14 @@ class aeexp1(object):
 			match_loss = tf.get_collection("match_loss")[0]
 			recon_loss = tf.get_collection("recon_loss")[0]
 			train_step = tf.get_collection("train_step")[0]
-			neg_dist_from_t = tf.get_collection("neg_dist_from_t")[0]
+			dist_from_t = tf.get_collection("dist_from_t")[0]
 
 		epoch = 0
 		log_file = open(self.log_file_name_head + ".txt", "w+")
 
 		self.write_log(log_file,
 			sess, X, T, t,
-			match_loss, recon_loss, neg_dist_from_t,
+			match_loss, recon_loss, dist_from_t,
 			epoch = epoch, epoch_time = 0.0, total_time = 0.0, eval_test = True)
 
 		total_time_begin = time.time()
@@ -148,7 +148,7 @@ class aeexp1(object):
 				"""
 				self.write_log(log_file,
 					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
+					match_loss, recon_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					train_match_loss_given = train_match_loss_got,
 					train_recon_loss_given = train_recon_loss_got,
@@ -156,14 +156,14 @@ class aeexp1(object):
 				"""
 				self.write_log(log_file,
 					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
+					match_loss, recon_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = True)
 			else:
 				"""
 				self.write_log(log_file,
 					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
+					match_loss, recon_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					train_match_loss_given = train_match_loss_got,
 					train_recon_loss_given = train_recon_loss_got,
@@ -171,7 +171,7 @@ class aeexp1(object):
 				"""
 				self.write_log(log_file,
 					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
+					match_loss, recon_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = False)
 		# End of all epochs
@@ -181,7 +181,7 @@ class aeexp1(object):
 	# Write log
 	def write_log(self, log_file,
 		sess, X, T, t,
-		match_loss, recon_loss, neg_dist_from_t,
+		match_loss, recon_loss, dist_from_t,
 		epoch = 0, epoch_time = 0.0, total_time = 0.0,
 		train_match_loss_given = None,
 		train_recon_loss_given = None,
@@ -203,18 +203,14 @@ class aeexp1(object):
 			X_test_full = self.data.test_X
 			Y_test_full = self.data.test_Y
 			T_test_full = self.attr_data.test_X
-			neg_dist_matrix = []
+			dist_matrix = []
 			for t_vec in T_test_full:
 				feed_dict = {X: X_test_full, t: t_vec}
-				neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
+				dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
+			dist_matrix = np.array(dist_matrix)
 
-			k_of_topk = 1
-			test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
-
-			k_of_topk = 5
-			test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
-
-			y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
+			test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
+			test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
 
 			print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
 			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
@@ -224,3 +220,34 @@ class aeexp1(object):
 
 		print(print_string)
 		log_file.write(log_string)
+
+
+	def top_k_per_class_accuracy(self, dist_matrix, Y_test_full, k_of_topk = 1):
+		y_pred = np.argsort(dist_matrix, axis = 0)[:k_of_topk, :]
+		pred_correct = np.sum((y_pred == Y_test_full).astype(np.int32), axis = 0)
+
+		count_table = {}
+		correct_count_table = {}
+		for idx, label in enumerate(Y_test_full):
+			if label in count_table:
+				count_table[label] += 1
+			else:
+				count_table[label] = 1
+
+			if pred_correct[idx] == 1:
+				if label in correct_count_table:
+					correct_count_table[label] += 1
+				else:
+					correct_count_table[label] = 1
+
+		print(correct_count_table)
+		print(count_table)
+
+		class_num = 0
+		correct_rate_sum = 0.0
+		for label, count in count_table.iteritems():
+			if label in correct_count_table:
+				correct_rate_sum += float(correct_count_table[label]) / count
+			class_num += 1
+
+		return correct_rate_sum / class_num
