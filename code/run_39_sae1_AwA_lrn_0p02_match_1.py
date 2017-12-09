@@ -7,13 +7,12 @@ import time
 import os
 import tensorflow as tf
 import dataset
-import aeexp1
+import sae1
 
 
 def main(_):
 	input_dim = 1024
 	attr_dim = 85
-	disp_dim = 85
 
 	lrn_rate = 0.02
 	train_batch_size = 16
@@ -21,8 +20,7 @@ def main(_):
 
 	momentum = 0.9
 
-	coef_match = 20
-	coef_recon = 1
+	coef_match = 1
 
 	train_size = 24295
 	test_size = 6180
@@ -39,7 +37,7 @@ def main(_):
 	train_attr_file_name = "../AwA/sTrain_scaled.npy"
 	test_attr_file_name = "../AwA/sTest_scaled.npy"
 
-	log_directory = "./log/log_37_aeexp1_AwA_adagrad_lrn_0p02_match_1_recon_1"
+	log_directory = "./log/log_39_sae1_AwA_lrn_0p02_match_1"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -47,10 +45,10 @@ def main(_):
 	#load_model_directory = "./log/log_27_lrn_0p02_data_AwA_match_1_adagrad_2"
 	load_model_directory = None
 
-	machine = aeexp1.aeexp1(
-		input_dim, attr_dim, disp_dim,
+	machine = sae1.sae1(
+		input_dim, attr_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = momentum,
-		coef_match = coef_match, coef_recon = coef_recon,
+		coef_match = coef_match,
 		train_file_name = train_file_name,
 		test_file_name = test_file_name,
 		train_label_file_name = train_label_file_name,

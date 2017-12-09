@@ -9,11 +9,11 @@ import tensorflow as tf
 import dataset
 
 
-class aeexp1(object):
+class sae(object):
 	def __init__(self,
 		input_dim, attr_dim, disp_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
-		coef_match = 1.0, coef_recon = 1.0,
+		coef_match = 1.0,
 		train_file_name = None,
 		val_file_name = None,
 		test_file_name = None,
@@ -28,7 +28,6 @@ class aeexp1(object):
 
 		self.input_dim = input_dim
 		self.attr_dim = attr_dim
-		self.disp_dim = disp_dim
 
 		self.lrn_rate = lrn_rate
 		self.train_batch_size = train_batch_size
@@ -36,7 +35,6 @@ class aeexp1(object):
 		self.momentum = momentum
 
 		self.coef_match = coef_match
-		self.coef_recon = coef_recon
 
 		self.log_file_name_head = log_file_name_head
 		self.save_model_period = save_model_period
@@ -60,12 +58,9 @@ class aeexp1(object):
 
 		if self.load_model_directory == None:
 			# --Model parameters--
-			# Encoder, attribute part
-			rng_attr = 1.0 / math.sqrt( float( self.input_dim + self.attr_dim ) )
-			W_attr = tf.Variable( tf.random_uniform( [self.input_dim, self.attr_dim], minval = -rng_attr, maxval = rng_attr ), name = "W_attr" )
-			# Encoder, display part
-			rng_disp = 1.0 / math.sqrt( float( self.input_dim + self.disp_dim ) )
-			W_disp = tf.Variable( tf.random_uniform( [self.input_dim, self.disp_dim], minval = -rng_disp, maxval = rng_disp ), name = "W_disp" )
+			# Encoder
+			rng = 1.0 / math.sqrt( float( self.input_dim + self.attr_dim ) )
+			W = tf.Variable( tf.random_uniform( [self.input_dim, self.attr_dim], minval = -rng_attr, maxval = rng_attr ), name = "W" )
 
 			# --Data and prior--
 			# Input image features, shape = [batch_size, input_dim]
@@ -76,23 +71,22 @@ class aeexp1(object):
 			t = tf.placeholder(tf.float32, [self.attr_dim], name = "t")
 
 			# --Build model--
-			# Autoencoder
-			H_attr = tf.matmul(X, W_attr)
-			H_disp = tf.matmul(X, W_disp)
-			X_recon = tf.matmul(H_attr, tf.transpose(W_attr)) + tf.matmul(H_disp, tf.transpose(W_disp))
+			# Autoencoder---it's more like domain transfer function
+			T_from_X = tf.matmul(X, W)
+			X_from_T = tf.matmul(T, tf.transpose(W))
 
 			# Match loss
-			# L2 norm of vector difference, average over size of batch
-			match_loss = tf.reduce_mean(tf.reduce_sum(tf.pow(H_attr - T, 2), axis = 1))
+			# Frobenious norm of a batch of vector differences
+			match_loss = tf.reduce_sum(tf.pow(T_from_X - T, 2))
 			tf.add_to_collection("match_loss", match_loss)
 
 			# Reconstruction loss
 			# L2 norm of vector difference, average over size of batch
-			recon_loss = tf.reduce_mean(tf.reduce_sum(tf.pow(X_recon - X, 2), axis = 1))
+			recon_loss = tf.reduce_sum(tf.pow(X_from_T - X, 2))
 			tf.add_to_collection("recon_loss", recon_loss)
 
 			# Training objectives
-			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_match * match_loss + self.coef_recon * recon_loss)
+			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + self.coef_match * match_loss)
 			tf.add_to_collection("train_step", train_step)
 
 			# Test time
@@ -108,8 +102,7 @@ class aeexp1(object):
 			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_directory))
 			graph = tf.get_default_graph()
 
-			W_attr = graph.get_tensor_by_name("W_attr:0")
-			W_disp = graph.get_tensor_by_name("W_disp:0")
+			W = graph.get_tensor_by_name("W:0")
 
 			X = graph.get_tensor_by_name("X:0")
 			T = graph.get_tensor_by_name("T:0")
@@ -137,7 +130,7 @@ class aeexp1(object):
 				X_batch, _, index_vector, _ = self.data.next_batch()
 				T_batch = self.attr_data.get_batch("train", index_vector)
 				feed_dict = {X: X_batch, T: T_batch}
-				_, train_match_loss_got, train_recon_loss_got = sess.run([train_step, match_loss, recon_loss], feed_dict = feed_dict)
+				sess.run(train_step, feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
 			epoch_time = time.time() - epoch_time_begin
@@ -145,30 +138,12 @@ class aeexp1(object):
 
 			if epoch % self.save_model_period == 0:
 				saver.save(sess, self.log_file_name_head)
-				"""
-				self.write_log(log_file,
-					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
-					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
-					train_match_loss_given = train_match_loss_got,
-					train_recon_loss_given = train_recon_loss_got,
-					eval_test = True)
-				"""
 				self.write_log(log_file,
 					sess, X, T, t,
 					match_loss, recon_loss, neg_dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = True)
 			else:
-				"""
-				self.write_log(log_file,
-					sess, X, T, t,
-					match_loss, recon_loss, neg_dist_from_t,
-					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
-					train_match_loss_given = train_match_loss_got,
-					train_recon_loss_given = train_recon_loss_got,
-					eval_test = False)
-				"""
 				self.write_log(log_file,
 					sess, X, T, t,
 					match_loss, recon_loss, neg_dist_from_t,

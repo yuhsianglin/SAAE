@@ -15,7 +15,7 @@ def main(_):
 	attr_dim = 85
 	disp_dim = 85
 
-	lrn_rate = 0.02
+	lrn_rate = 0.2
 	train_batch_size = 16
 	epoch_max = 100
 
@@ -39,7 +39,7 @@ def main(_):
 	train_attr_file_name = "../AwA/sTrain_scaled.npy"
 	test_attr_file_name = "../AwA/sTest_scaled.npy"
 
-	log_directory = "./log/log_37_aeexp1_AwA_adagrad_lrn_0p02_match_1_recon_1"
+	log_directory = "./log/log_38_aeexp1_AwA_adagrad_lrn_0p2_match_20_recon_1"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)

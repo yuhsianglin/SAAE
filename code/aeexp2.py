@@ -9,7 +9,7 @@ import tensorflow as tf
 import dataset
 
 
-class aeexp1(object):
+class aeexp2(object):
 	def __init__(self,
 		input_dim, attr_dim, disp_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
@@ -92,7 +92,7 @@ class aeexp1(object):
 			tf.add_to_collection("recon_loss", recon_loss)
 
 			# Training objectives
-			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_match * match_loss + self.coef_recon * recon_loss)
+			train_step = tf.train.MomentumOptimizer(self.lrn_rate, self.momentum).minimize(self.coef_match * match_loss + self.coef_recon * recon_loss)
 			tf.add_to_collection("train_step", train_step)
 
 			# Test time
