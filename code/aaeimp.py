@@ -13,7 +13,7 @@ class aaeimp(object):
 	def __init__(self,
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
-		coef_recon = 1.0,
+		coef_recon = 1.0, coef_gan = 1.0,
 		train_file_name = None,
 		val_file_name = None,
 		test_file_name = None,
@@ -36,6 +36,7 @@ class aaeimp(object):
 		self.momentum = momentum
 
 		self.coef_recon = coef_recon
+		self.coef_gan = coef_gan
 
 		self.log_file_name_head = log_file_name_head
 		self.save_model_period = save_model_period
@@ -127,8 +128,8 @@ class aaeimp(object):
 			tf.add_to_collection("disc_loss", disc_loss)
 
 			# Training objectives
-			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_recon * recon_loss + gen_loss)
-			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(disc_loss)
+			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_recon * recon_loss + self.coef_gan * gen_loss)
+			train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_gan * disc_loss)
 			tf.add_to_collection("train_gen_step", train_gen_step)
 			tf.add_to_collection("train_disc_step", train_disc_step)
 
