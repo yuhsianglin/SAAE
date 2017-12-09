@@ -224,7 +224,9 @@ class sae2(object):
 				else:
 					correct_count_table[label] = 1
 
+		print("top", k_of_topk, "correctly classify:")
 		print(correct_count_table)
+		print("total number in each class:")
 		print(count_table)
 
 		class_num = 0
@@ -255,7 +257,9 @@ class sae2(object):
 				else:
 					correct_count_table[label] = 1
 
+		print("top", k_of_topk, "correctly classify:")
 		print(correct_count_table)
+		print("total number in each class:")
 		print(count_table)
 
 		seen_class_num = 0
