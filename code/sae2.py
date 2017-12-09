@@ -9,7 +9,7 @@ import tensorflow as tf
 import dataset
 
 
-class sae1(object):
+class sae2(object):
 	def __init__(self,
 		input_dim, attr_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
@@ -77,12 +77,12 @@ class sae1(object):
 
 			# Match loss
 			# Frobenious norm of a batch of vector differences
-			match_loss = tf.reduce_sum(tf.pow(T_from_X - T, 2))
+			match_loss = tf.reduce_mean(tf.pow(T_from_X - T, 2))
 			tf.add_to_collection("match_loss", match_loss)
 
 			# Reconstruction loss
 			# L2 norm of vector difference, average over size of batch
-			recon_loss = tf.reduce_sum(tf.pow(X_from_T - X, 2))
+			recon_loss = tf.reduce_mean(tf.pow(X_from_T - X, 2))
 			tf.add_to_collection("recon_loss", recon_loss)
 
 			# Training objectives
