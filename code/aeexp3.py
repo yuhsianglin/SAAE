@@ -9,12 +9,11 @@ import tensorflow as tf
 import dataset
 
 
-class sae2(object):
+class aeexp3(object):
 	def __init__(self,
-		input_dim, attr_dim,
+		input_dim, attr_dim, disp_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
-		coef_match = 1.0,
-		unseen_class_file_name = None,
+		coef_match = 1.0, coef_recon = 1.0,
 		train_file_name = None,
 		val_file_name = None,
 		test_file_name = None,
@@ -29,6 +28,7 @@ class sae2(object):
 
 		self.input_dim = input_dim
 		self.attr_dim = attr_dim
+		self.disp_dim = disp_dim
 
 		self.lrn_rate = lrn_rate
 		self.train_batch_size = train_batch_size
@@ -36,8 +36,7 @@ class sae2(object):
 		self.momentum = momentum
 
 		self.coef_match = coef_match
-
-		self.unseen_class = np.load(unseen_class_file_name)
+		self.coef_recon = coef_recon
 
 		self.log_file_name_head = log_file_name_head
 		self.save_model_period = save_model_period
@@ -61,9 +60,12 @@ class sae2(object):
 
 		if self.load_model_directory == None:
 			# --Model parameters--
-			# Encoder
-			rng = 1.0 / math.sqrt( float( self.input_dim + self.attr_dim ) )
-			W = tf.Variable( tf.random_uniform( [self.input_dim, self.attr_dim], minval = -rng, maxval = rng ), name = "W" )
+			# Encoder, attribute part
+			rng_attr = 1.0 / math.sqrt( float( self.input_dim + self.attr_dim ) )
+			W_attr = tf.Variable( tf.random_uniform( [self.input_dim, self.attr_dim], minval = -rng_attr, maxval = rng_attr ), name = "W_attr" )
+			# Encoder, display part
+			rng_disp = 1.0 / math.sqrt( float( self.input_dim + self.disp_dim ) )
+			W_disp = tf.Variable( tf.random_uniform( [self.input_dim, self.disp_dim], minval = -rng_disp, maxval = rng_disp ), name = "W_disp" )
 
 			# --Data and prior--
 			# Input image features, shape = [batch_size, input_dim]
@@ -74,26 +76,27 @@ class sae2(object):
 			t = tf.placeholder(tf.float32, [self.attr_dim], name = "t")
 
 			# --Build model--
-			# Autoencoder---it's more like domain transfer function
-			T_from_X = tf.matmul(X, W)
-			X_from_T = tf.matmul(T, tf.transpose(W))
+			# Autoencoder
+			H_attr = tf.tanh(tf.matmul(X, W_attr))
+			H_disp = tf.tanh(tf.matmul(X, W_disp))
+			X_recon = tf.tanh( tf.matmul(H_attr, tf.transpose(W_attr)) + tf.matmul(H_disp, tf.transpose(W_disp)) )
 
 			# Match loss
-			# Frobenious norm of a batch of vector differences
-			match_loss = tf.reduce_mean(tf.pow(T_from_X - T, 2))
+			# L2 norm of vector difference, average over size of batch
+			match_loss = tf.reduce_mean(tf.reduce_sum(tf.pow(H_attr - T, 2), axis = 1))
 			tf.add_to_collection("match_loss", match_loss)
 
 			# Reconstruction loss
 			# L2 norm of vector difference, average over size of batch
-			recon_loss = tf.reduce_mean(tf.pow(X_from_T - X, 2))
+			recon_loss = tf.reduce_mean(tf.reduce_sum(tf.pow(X_recon - X, 2), axis = 1))
 			tf.add_to_collection("recon_loss", recon_loss)
 
 			# Training objectives
-			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + self.coef_match * match_loss)
+			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_match * match_loss + self.coef_recon * recon_loss)
 			tf.add_to_collection("train_step", train_step)
 
 			# Test time
-			dist_from_t = tf.reduce_sum( tf.pow(T_from_X - t, 2), axis = 1 )
+			dist_from_t = tf.reduce_sum( tf.pow(H_attr - t, 2), axis = 1 )
 			tf.add_to_collection("dist_from_t", dist_from_t)
 
 			# --Set up graph--
@@ -105,7 +108,8 @@ class sae2(object):
 			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_directory))
 			graph = tf.get_default_graph()
 
-			W = graph.get_tensor_by_name("W:0")
+			W_attr = graph.get_tensor_by_name("W_attr:0")
+			W_disp = graph.get_tensor_by_name("W_disp:0")
 
 			X = graph.get_tensor_by_name("X:0")
 			T = graph.get_tensor_by_name("T:0")
@@ -130,10 +134,10 @@ class sae2(object):
 
 			self.data.initialize_batch("train", batch_size = self.train_batch_size)
 			while self.data.has_next_batch():
-				X_batch, Y_batch, _, _ = self.data.next_batch()
-				T_batch = self.attr_data.get_batch("test", Y_batch)
+				X_batch, _, index_vector, _ = self.data.next_batch()
+				T_batch = self.attr_data.get_batch("train", index_vector)
 				feed_dict = {X: X_batch, T: T_batch}
-				sess.run(train_step, feed_dict = feed_dict)
+				_, train_match_loss_got, train_recon_loss_got = sess.run([train_step, match_loss, recon_loss], feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
 			epoch_time = time.time() - epoch_time_begin
@@ -141,12 +145,30 @@ class sae2(object):
 
 			if epoch % self.save_model_period == 0:
 				saver.save(sess, self.log_file_name_head)
+				"""
+				self.write_log(log_file,
+					sess, X, T, t,
+					match_loss, recon_loss, dist_from_t,
+					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
+					train_match_loss_given = train_match_loss_got,
+					train_recon_loss_given = train_recon_loss_got,
+					eval_test = True)
+				"""
 				self.write_log(log_file,
 					sess, X, T, t,
 					match_loss, recon_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = True)
 			else:
+				"""
+				self.write_log(log_file,
+					sess, X, T, t,
+					match_loss, recon_loss, dist_from_t,
+					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
+					train_match_loss_given = train_match_loss_got,
+					train_recon_loss_given = train_recon_loss_got,
+					eval_test = False)
+				"""
 				self.write_log(log_file,
 					sess, X, T, t,
 					match_loss, recon_loss, dist_from_t,
@@ -170,8 +192,7 @@ class sae2(object):
 
 			# Use full batch for train
 			X_full = self.data.train_X
-			Y_full = self.data.train_Y
-			T_full = self.attr_data.get_batch("test", Y_full)
+			T_full = self.attr_data.train_X
 			feed_dict = {X: X_full, T: T_full}
 			train_match_loss_got, train_recon_loss_got = sess.run([match_loss, recon_loss], feed_dict = feed_dict)
 		else:
@@ -188,13 +209,8 @@ class sae2(object):
 				dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
 			dist_matrix = np.array(dist_matrix)
 
-			# Standard zero-shot learning, test time only unseen classes
 			test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
 			test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
-
-			# Generalized zero-shot learning, test time both unseen and seen classes
-			# _, _, test_top_1_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-			# _, _, test_top_5_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
 
 			print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
 			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
@@ -235,49 +251,3 @@ class sae2(object):
 			class_num += 1
 
 		return correct_rate_sum / class_num
-
-
-	def generalized_accuracy(self, dist_matrix, Y_test_full, k_of_topk = 1):
-		y_pred = np.argsort(dist_matrix, axis = 0)[:k_of_topk, :]
-		pred_correct = np.sum((y_pred == Y_test_full).astype(np.int32), axis = 0)
-
-		count_table = {}
-		correct_count_table = {}
-		for idx, label in enumerate(Y_test_full):
-			if label in count_table:
-				count_table[label] += 1
-			else:
-				count_table[label] = 1
-
-			if pred_correct[idx] == 1:
-				if label in correct_count_table:
-					correct_count_table[label] += 1
-				else:
-					correct_count_table[label] = 1
-
-		print(correct_count_table)
-		print(count_table)
-
-		seen_class_num = 0
-		seen_correct_rate_sum = 0.0
-		unseen_class_num = 0
-		# Or, unseen_class_num = len(self.unseen_class) if unseen_class contains no duplicate
-		unseen_correct_rate_sum = 0.0
-		for label, count in count_table.iteritems():
-			if label in self.unseen_class:
-				unseen_class_num += 1
-				if label in correct_count_table:
-					unseen_correct_rate_sum += float(correct_count_table[label]) / count
-			else:
-				seen_class_num += 1
-				if label in correct_count_table:
-					seen_correct_rate_sum += float(correct_count_table[label]) / count
-
-		unseen_accuracy = unseen_correct_rate_sum / unseen_class_num
-		seen_accuracy = seen_correct_rate_sum / seen_class_num
-
-		harmonic_mean_accuracy = 2 * unseen_accuracy * seen_accuracy / (unseen_accuracy + seen_accuracy)
-
-		unseen_and_seen_accuracy = (unseen_correct_rate_sum + seen_correct_rate_sum) / (unseen_class_num + seen_class_num)
-
-		return [unseen_accuracy, unseen_and_seen_accuracy, harmonic_mean_accuracy]
