@@ -28,6 +28,8 @@ def main(_):
 
 	save_model_period = 10
 
+	generalizedZSL = False
+
 	unseen_class_file_name = "../CUB_200_2011_1202_standardZSL/unseen_class.npy"
 
 	train_file_name = "../CUB_200_2011_1202_standardZSL/xTrain_scaled.npy"
@@ -58,7 +60,8 @@ def main(_):
 		test_attr_file_name = test_attr_file_name,
 		log_file_name_head = log_file_name_head,
 		save_model_period = save_model_period,
-		load_model_directory = load_model_directory)
+		load_model_directory = load_model_directory,
+		generalizedZSL = generalizedZSL)
 
 	machine.train()
 

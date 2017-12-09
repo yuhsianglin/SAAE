@@ -25,7 +25,8 @@ class sae2(object):
 		val_attr_file_name = None,
 		test_attr_file_name = None,
 		log_file_name_head = None, save_model_period = 1,
-		load_model_directory = None):
+		load_model_directory = None,
+		generalizedZSL = False):
 
 		self.input_dim = input_dim
 		self.attr_dim = attr_dim
@@ -42,6 +43,8 @@ class sae2(object):
 		self.log_file_name_head = log_file_name_head
 		self.save_model_period = save_model_period
 		self.load_model_directory = load_model_directory
+
+		self.generalizedZSL = generalizedZSL
 
 		self.data = dataset.dataset(
 			train_file_name = train_file_name,
@@ -178,26 +181,54 @@ class sae2(object):
 			train_match_loss_got, train_recon_loss_got = [train_match_loss_given, train_recon_loss_given]
 
 		if eval_test:
-			# Use full-batch for test
-			X_test_full = self.data.test_X
-			Y_test_full = self.data.test_Y
-			T_test_full = self.attr_data.test_X
-			dist_matrix = []
-			for t_vec in T_test_full:
-				feed_dict = {X: X_test_full, t: t_vec}
-				dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
-			dist_matrix = np.array(dist_matrix)
+			if self.generalizedZSL:
+				# Use full-batch for test
+				X_test_full = self.data.test_X
+				Y_test_full = self.data.test_Y
+				T_test_full = self.attr_data.test_X
+				dist_matrix = []
 
-			# Standard zero-shot learning, test time only unseen classes
-			test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-			test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
+				for t_vec in T_test_full:
+					feed_dict = {X: X_test_full, t: t_vec}
+					dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
 
-			# Generalized zero-shot learning, test time both unseen and seen classes
-			# _, _, test_top_1_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-			# _, _, test_top_5_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
+				dist_matrix = np.array(dist_matrix)
 
-			print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+				# Generalized zero-shot learning, test time both unseen and seen classes
+				_, _, test_top_1_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
+				_, _, test_top_5_accuracy = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
+
+				print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+
+			# Standard ZSL
+			else:
+				# Use full-batch for test
+				X_test_full = self.data.test_X
+				Y_test_full = self.data.test_Y
+				T_test_full = self.attr_data.test_X
+				dist_matrix = []
+				rowidx = 0
+				rowidx_label_table = []
+				for label, t_vec in enumerate(T_test_full):
+					if label in self.unseen_class:
+						rowidx_label_table.append(label)
+						rowidx += 1
+						# Distances to the class with "label" (for all test instances) are in row with index "rowidx"
+						feed_dict = {X: X_test_full, t: t_vec}
+						dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
+				# So now rowidx_label_table = [35, 16, 0, 3, ...], for example.
+				# This means that the first row in dist_matrix is the distance to label 35, second row is that to label 16, and so on.
+
+				dist_matrix = np.array(dist_matrix)
+
+				# Standard zero-shot learning, test time only unseen classes
+				test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
+				test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 5)
+
+				print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+
 		else:
 			print_string = "%d\t%f\t%f\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
 			log_string = '%d\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
@@ -206,8 +237,10 @@ class sae2(object):
 		log_file.write(log_string)
 
 
-	def top_k_per_class_accuracy(self, dist_matrix, Y_test_full, k_of_topk = 1):
+	def top_k_per_class_accuracy(self, dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1):
 		y_pred = np.argsort(dist_matrix, axis = 0)[:k_of_topk, :]
+		map_to_real_label = np.vectorize(lambda x: rowidx_label_table[x])
+		y_pred = map_to_real_label(y_pred)
 		pred_correct = np.sum((y_pred == Y_test_full).astype(np.int32), axis = 0)
 
 		count_table = {}
@@ -265,7 +298,7 @@ class sae2(object):
 		seen_class_num = 0
 		seen_correct_rate_sum = 0.0
 		unseen_class_num = 0
-		# Or, unseen_class_num = len(self.unseen_class) if unseen_class contains no duplicate
+		# Or, unseen_class_num = len(self.unseen_class) since unseen_class should not contain any duplicate
 		unseen_correct_rate_sum = 0.0
 		for label, count in count_table.iteritems():
 			if label in self.unseen_class:
