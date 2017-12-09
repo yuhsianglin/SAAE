@@ -215,10 +215,14 @@ class sae2(object):
 				else:
 					correct_count_table[label] = 1
 
+		print(correct_count_table)
+		print(count_table)
+
 		class_num = 0
 		correct_rate_sum = 0.0
 		for label, count in count_table.iteritems():
-			correct_rate_sum += float(correct_count_table[label]) / count
+			if label in correct_count_table:
+				correct_rate_sum += float(correct_count_table[label]) / count
 			class_num += 1
 
 		return correct_rate_sum / class_num
