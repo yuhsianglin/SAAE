@@ -7,7 +7,7 @@ import time
 import os
 import tensorflow as tf
 import dataset
-import sae2
+import sae3
 
 
 def main(_):
@@ -40,7 +40,7 @@ def main(_):
 
 	test_attr_file_name = "../AwA_generalizedZSL/sTest_scaled.npy"
 
-	log_directory = "./log/log_63_sae2_AwA_lrn_0p2_match_100_gZSL"
+	log_directory = "./log/log_64_sae3_AwA_lrn_0p2_match_100_gZSL"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -48,7 +48,7 @@ def main(_):
 	#load_model_directory = "./log/log_27_lrn_0p02_data_AwA_match_1_adagrad_2"
 	load_model_directory = None
 
-	machine = sae2.sae2(
+	machine = sae3.sae3(
 		input_dim, attr_dim,
 		lrn_rate, train_batch_size, epoch_max, #momentum = momentum,
 		coef_match = coef_match,
