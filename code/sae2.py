@@ -208,16 +208,14 @@ class sae2(object):
 				Y_test_full = self.data.test_Y
 				T_test_full = self.attr_data.test_X
 				dist_matrix = []
-				rowidx = 0
 				rowidx_label_table = []
 				for label, t_vec in enumerate(T_test_full):
 					if label in self.unseen_class:
 						rowidx_label_table.append(label)
-						rowidx += 1
 						# Distances to the class with "label" (for all test instances) are in row with index "rowidx"
 						feed_dict = {X: X_test_full, t: t_vec}
 						dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
-				# So now rowidx_label_table = [35, 16, 0, 3, ...], for example.
+				# So now rowidx_label_table = [3, 16, 25, ...], for example.
 				# This means that the first row in dist_matrix is the distance to label 35, second row is that to label 16, and so on.
 
 				dist_matrix = np.array(dist_matrix)

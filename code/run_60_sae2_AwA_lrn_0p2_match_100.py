@@ -16,7 +16,7 @@ def main(_):
 
 	lrn_rate = 0.2
 	train_batch_size = 64
-	epoch_max = 300
+	epoch_max = 100
 
 	#momentum = 0.9
 
@@ -26,19 +26,21 @@ def main(_):
 	test_size = 6180
 	#reg_lambda = 1.0 / train_size
 
-	save_model_period = 10
+	save_model_period = 1
 
-	unseen_class_file_name = ""
+	generalizedZSL = False
 
-	train_file_name = "../AwA/xTrain_scaled.npy"
-	test_file_name = "../AwA/xTest_scaled.npy"
+	unseen_class_file_name = "../AwA_standardZSL/unseen_class.npy"
 
-	train_label_file_name = "../AwA/yTrain_relabeled.npy"
-	test_label_file_name = "../AwA/yTest_relabeled.npy"
+	train_file_name = "../AwA_standardZSL/xTrain_scaled.npy"
+	test_file_name = "../AwA_standardZSL/xTest_scaled.npy"
 
-	test_attr_file_name = "../AwA/sTest_scaled.npy"
+	train_label_file_name = "../AwA_standardZSL/yTrain.npy"
+	test_label_file_name = "../AwA_standardZSL/yTest.npy"
 
-	log_directory = "./log/log_58_sae2_AwA_lrn_0p2_match_100"
+	test_attr_file_name = "../AwA_standardZSL/sTest_scaled.npy"
+
+	log_directory = "./log/log_60_sae2_AwA_lrn_0p2_match_100"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -58,7 +60,8 @@ def main(_):
 		test_attr_file_name = test_attr_file_name,
 		log_file_name_head = log_file_name_head,
 		save_model_period = save_model_period,
-		load_model_directory = load_model_directory)
+		load_model_directory = load_model_directory,
+		generalizedZSL = generalizedZSL)
 
 	machine.train()
 

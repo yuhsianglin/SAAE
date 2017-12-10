@@ -5,43 +5,68 @@ from __future__ import print_function
 import numpy as np
 
 
-xTrain = np.load("../AwA/xTrain.npy")
-xTrain = 2 * (xTrain - xTrain.min()) / (xTrain.max() - xTrain.min()) - 1
-np.save("../AwA/xTrain_scaled_2.npy", xTrain)
+xTrain = np.load("../AwA_standardZSL/xTrain.npy")
+xTrain = (xTrain - xTrain.min()) / (xTrain.max() - xTrain.min())
+np.save("../AwA_standardZSL/xTrain_scaled.npy", xTrain.astype(np.float32))
 
-yTrain_file = open("../AwA/labelTrain.txt", "r")
+yTrain_file = open("../AwA_standardZSL/labelTrain.txt", "r")
 yTrain = []
 for line in yTrain_file:
-	yTrain.append(int(line))
+	yTrain.append(int(line) - 1)
 yTrain_file.close()
 yTrain = np.array(yTrain)
-np.save("../AwA/yTrain.npy", yTrain)
+np.save("../AwA_standardZSL/yTrain.npy", yTrain.astype(np.int32))
 
-xTest = np.load("../AwA/xTest.npy")
-xTest = 2 * (xTest - xTest.min()) / (xTest.max() - xTest.min()) - 1
-np.save("../AwA/xTest_scaled_2.npy", xTest)
+xTest = np.load("../AwA_standardZSL/xTest.npy")
+xTest = (xTest - xTest.min()) / (xTest.max() - xTest.min())
+np.save("../AwA_standardZSL/xTest_scaled.npy", xTest.astype(np.float32))
 
-# For test label, we rename labels into [0, 1, ..., N_unseen - 1]
-yTest_file = open("../AwA/labelTest.txt", "r")
+yTest_file = open("../AwA_standardZSL/labelTest.txt", "r")
 yTest = []
-label_dict = {}
-new_label_counter = 0
+unseen_class = []
 for line in yTest_file:
-	label = int(line)
-	if label not in label_dict:
-		label_dict[label] = new_label_counter
-		yTest.append(new_label_counter)
-		new_label_counter += 1
-	else:
-		yTest.append(label_dict[label])
+	label = int(line) - 1
+	yTest.append(label)
+	if label not in unseen_class:
+		unseen_class.append(label)
 yTest_file.close()
 yTest = np.array(yTest)
-np.save("../AwA/yTest_relabeled.npy", yTest)
+unseen_class = np.array(unseen_class)
+np.save("../AwA_standardZSL/yTest.npy", yTest.astype(np.int32))
+np.save("../AwA_standardZSL/unseen_class.npy", unseen_class.astype(np.int32))
 
-sTrain = np.load("../AwA/sTrain.npy")
-sTrain = 2 * (sTrain - sTrain.min()) / (sTrain.max() - sTrain.min()) - 1
-np.save("../AwA/sTrain_scaled_2.npy", sTrain)
 
-sTest = np.load("../AwA/sTest.npy")
-sTest = 2 * (sTest - sTest.min()) / (sTest.max() - sTest.min()) - 1
-np.save("../AwA/sTest_scaled_2.npy", sTest)
+label_attr_dict = {}
+
+sTrain = np.load("../AwA_standardZSL/sTrain.npy")
+sTrain = (sTrain - sTrain.min()) / (sTrain.max() - sTrain.min())
+
+for instance_idx, label in enumerate(yTrain):
+	if label not in label_attr_dict:
+		label_attr_dict[label] = sTrain[instance_idx]
+	else:
+		if (label_attr_dict[label] - sTrain[instance_idx]).any():
+			print("Warn: Not all class member has same attribute")
+
+sTest = np.load("../AwA_standardZSL/sTest.npy")
+sTest = (sTest - sTest.min()) / (sTest.max() - sTest.min())
+
+s_idx = 0
+current_label = yTest[0]
+if current_label not in label_attr_dict:
+	label_attr_dict[current_label] = sTest[s_idx]
+	s_idx += 1
+
+for label in yTest:
+	if label != current_label:
+		current_label = label
+		label_attr_dict[current_label] = sTest[s_idx]
+		s_idx += 1
+
+sOutput = []
+total_class_num = len(label_attr_dict)
+for label in range(total_class_num):
+	sOutput.append(label_attr_dict[label])
+sOutput = np.array(sOutput)
+
+np.save("../AwA_standardZSL/sTest_scaled.npy", sOutput.astype(np.float32))

@@ -12,7 +12,7 @@ import sae2
 
 def main(_):
 	input_dim = 1024
-	attr_dim = 312
+	attr_dim = 85
 
 	lrn_rate = 0.2
 	train_batch_size = 64
@@ -22,25 +22,25 @@ def main(_):
 
 	coef_match = 100
 
-	train_size = 8822
-	test_size = 2966
+	train_size = 24295
+	test_size = 6180
 	#reg_lambda = 1.0 / train_size
 
 	save_model_period = 1
 
 	generalizedZSL = False
 
-	unseen_class_file_name = "../CUB_200_2011_1202_standardZSL/unseen_class.npy"
+	unseen_class_file_name = "../AwA_standardZSL/unseen_class.npy"
 
-	train_file_name = "../CUB_200_2011_1202_standardZSL/xTrain_scaled.npy"
-	test_file_name = "../CUB_200_2011_1202_standardZSL/xTest_scaled.npy"
+	train_file_name = "../AwA_standardZSL/xTrain_scaled.npy"
+	test_file_name = "../AwA_standardZSL/xTest_scaled.npy"
 
-	train_label_file_name = "../CUB_200_2011_1202_standardZSL/yTrain.npy"
-	test_label_file_name = "../CUB_200_2011_1202_standardZSL/yTest.npy"
+	train_label_file_name = "../AwA_standardZSL/yTrain.npy"
+	test_label_file_name = "../AwA_standardZSL/yTest.npy"
 
-	test_attr_file_name = "../CUB_200_2011_1202_standardZSL/sTest_scaled.npy"
+	test_attr_file_name = "../AwA_standardZSL/sTest_scaled.npy"
 
-	log_directory = "./log/log_59_sae2_CUB_sZSL_lrn_0p2_match_100"
+	log_directory = "./log/log_60_sae2_AwA_lrn_0p2_match_100"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)

@@ -26,7 +26,7 @@ def main(_):
 	test_size = 2966
 	#reg_lambda = 1.0 / train_size
 
-	save_model_period = 10
+	save_model_period = 1
 
 	generalizedZSL = False
 
