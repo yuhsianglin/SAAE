@@ -22,8 +22,8 @@ def main(_):
 
 	coef_match = 100
 
-	train_size = 24295
-	test_size = 6180
+	train_size = 19094
+	test_size = 11381
 	#reg_lambda = 1.0 / train_size
 
 	save_model_period = 1
