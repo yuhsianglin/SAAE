@@ -14,6 +14,7 @@ class aaeimp(object):
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
 		coef_recon = 1.0, coef_gan = 1.0,
+		unseen_class_file_name = None,
 		train_file_name = None,
 		val_file_name = None,
 		test_file_name = None,
@@ -24,7 +25,8 @@ class aaeimp(object):
 		val_attr_file_name = None,
 		test_attr_file_name = None,
 		log_file_name_head = None, save_model_period = 1,
-		load_model_directory = None):
+		load_model_directory = None,
+		generalizedZSL = False):
 
 		self.input_dim = input_dim
 		self.hid_dim = hid_dim
@@ -38,9 +40,13 @@ class aaeimp(object):
 		self.coef_recon = coef_recon
 		self.coef_gan = coef_gan
 
+		self.unseen_class = np.load(unseen_class_file_name)
+
 		self.log_file_name_head = log_file_name_head
 		self.save_model_period = save_model_period
 		self.load_model_directory = load_model_directory
+
+		self.generalizedZSL = generalizedZSL
 
 		self.data = dataset.dataset(
 			train_file_name = train_file_name,
@@ -134,8 +140,8 @@ class aaeimp(object):
 			tf.add_to_collection("train_disc_step", train_disc_step)
 
 			# Test time
-			neg_dist_from_t = -tf.reduce_sum( tf.pow(H - t, 2), axis = 1 )
-			tf.add_to_collection("neg_dist_from_t", neg_dist_from_t)
+			dist_from_t = -tf.transpose( tf.matmul( T_from_X, tf.reshape( t, [ self.attr_dim, 1 ] ) ) )[0] / tf.sqrt( tf.reduce_sum( T_from_X * T_from_X, axis = 1 ) * tf.reduce_sum( t * t ) )
+			tf.add_to_collection("dist_from_t", dist_from_t)
 
 			# --Set up graph--
 			sess.run(tf.global_variables_initializer())
@@ -165,14 +171,14 @@ class aaeimp(object):
 			match_loss = tf.get_collection("match_loss")[0]
 			train_gen_step = tf.get_collection("train_gen_step")[0]
 			train_disc_step = tf.get_collection("train_disc_step")[0]
-			neg_dist_from_t = tf.get_collection("neg_dist_from_t")[0]
+			dist_from_t = tf.get_collection("dist_from_t")[0]
 
 		epoch = 0
 		log_file = open(self.log_file_name_head + ".txt", "w+")
 
 		self.write_log(log_file,
 			sess, X, T, t,
-			gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+			gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 			epoch = epoch, epoch_time = 0.0, total_time = 0.0, eval_test = True)
 
 		total_time_begin = time.time()
@@ -184,8 +190,8 @@ class aaeimp(object):
 				X_batch, Y_batch, index_vector, _ = self.data.next_batch()
 				T_batch = self.attr_data.get_batch("train", index_vector)
 				feed_dict = {X: X_batch, T: T_batch}
-				_, train_gen_loss_got, train_recon_loss_got, train_match_loss_got = sess.run([train_gen_step, gen_loss, recon_loss, match_loss], feed_dict = feed_dict)
-				_, train_disc_loss_got = sess.run([train_disc_step, disc_loss], feed_dict = feed_dict)
+				sess.run(train_gen_step, feed_dict = feed_dict)
+				sess.run(train_disc_step, feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
 			epoch_time = time.time() - epoch_time_begin
@@ -195,22 +201,14 @@ class aaeimp(object):
 				saver.save(sess, self.log_file_name_head)
 				self.write_log(log_file,
 					sess, X, T, t,
-					gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+					gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
-					train_gen_loss_given = train_gen_loss_got,
-					train_disc_loss_given = train_disc_loss_got,
-					train_recon_loss_given = train_recon_loss_got,
-					train_match_loss_given = train_match_loss_got,
 					eval_test = True)
 			else:
 				self.write_log(log_file,
 					sess, X, T, t,
-					gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+					gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
-					train_gen_loss_given = train_gen_loss_got,
-					train_disc_loss_given = train_disc_loss_got,
-					train_recon_loss_given = train_recon_loss_got,
-					train_match_loss_given = train_match_loss_got,
 					eval_test = False)
 		# End of all epochs
 		log_file.close()
@@ -219,7 +217,7 @@ class aaeimp(object):
 	# Write log
 	def write_log(self, log_file,
 		sess, X, T, t,
-		gen_loss, disc_loss, recon_loss, match_loss, neg_dist_from_t,
+		gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 		epoch = 0, epoch_time = 0.0, total_time = 0.0,
 		train_gen_loss_given = None, train_disc_loss_given = None,
 		train_recon_loss_given = None, train_match_loss_given = None,
@@ -239,28 +237,135 @@ class aaeimp(object):
 			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = [train_gen_loss_given, train_disc_loss_given, train_recon_loss_given, train_match_loss_given]
 
 		if eval_test:
-			# Use full-batch for test
-			X_test_full = self.data.test_X
-			Y_test_full = self.data.test_Y
-			T_test_full = self.attr_data.test_X
-			neg_dist_matrix = []
-			for t_vec in T_test_full:
-				feed_dict = {X: X_test_full, t: t_vec}
-				neg_dist_matrix.append( sess.run(neg_dist_from_t, feed_dict = feed_dict) )
+			if self.generalizedZSL:
+				# Use full-batch for test
+				X_test_full = self.data.test_X
+				Y_test_full = self.data.test_Y
+				T_test_full = self.attr_data.test_X
+				dist_matrix = []
 
-			k_of_topk = 1
-			test_top_1_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+				for t_vec in T_test_full:
+					feed_dict = {X: X_test_full, t: t_vec}
+					dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
 
-			k_of_topk = 5
-			test_top_5_accuracy = sess.run( tf.nn.in_top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix), dtype = tf.float32) ), tf.convert_to_tensor(Y_test_full, dtype = tf.int32), k_of_topk ) ).astype(int).mean()
+				dist_matrix = np.array(dist_matrix)
 
-			y_pred = sess.run( tf.nn.top_k( tf.transpose( tf.convert_to_tensor(np.array(neg_dist_matrix)) ), k = T_test_full.shape[0] ).indices )
+				# Generalized zero-shot learning, test time both unseen and seen classes
+				_, test_top_1_accuracy, _ = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
 
-			print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+				print_string = "%d\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, epoch_time, total_time)
+
+			# Standard ZSL
+			else:
+				# Use full-batch for test
+				X_test_full = self.data.test_X
+				Y_test_full = self.data.test_Y
+				T_test_full = self.attr_data.test_X
+				dist_matrix = []
+				rowidx_label_table = []
+				for label, t_vec in enumerate(T_test_full):
+					if label in self.unseen_class:
+						rowidx_label_table.append(label)
+						# Distances to the class with "label" (for all test instances) are in row with index "rowidx"
+						feed_dict = {X: X_test_full, t: t_vec}
+						dist_matrix.append( sess.run(dist_from_t, feed_dict = feed_dict) )
+				# So now rowidx_label_table = [3, 16, 25, ...], for example.
+				# This means that the first row in dist_matrix is the distance to label 35, second row is that to label 16, and so on.
+
+				dist_matrix = np.array(dist_matrix)
+
+				# Standard zero-shot learning, test time only unseen classes
+				test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
+
+				print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy, epoch_time, total_time)
 		else:
 			print_string = "%d\t%f\t%f\t%f\t%f\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\t--------\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
 
 		print(print_string)
 		log_file.write(log_string)
+
+
+	def top_k_per_class_accuracy(self, dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1):
+		y_pred = np.argsort(dist_matrix, axis = 0)[:k_of_topk, :]
+		map_to_real_label = np.vectorize(lambda x: rowidx_label_table[x])
+		y_pred = map_to_real_label(y_pred)
+		pred_correct = np.sum((y_pred == Y_test_full).astype(np.int32), axis = 0)
+
+		count_table = {}
+		correct_count_table = {}
+		for idx, label in enumerate(Y_test_full):
+			if label in count_table:
+				count_table[label] += 1
+			else:
+				count_table[label] = 1
+
+			if pred_correct[idx] == 1:
+				if label in correct_count_table:
+					correct_count_table[label] += 1
+				else:
+					correct_count_table[label] = 1
+
+		print("top", k_of_topk, "correctly classify:")
+		print(correct_count_table)
+		print("total number in each class:")
+		print(count_table)
+
+		class_num = 0
+		correct_rate_sum = 0.0
+		for label, count in count_table.iteritems():
+			if label in correct_count_table:
+				correct_rate_sum += float(correct_count_table[label]) / count
+			class_num += 1
+
+		return correct_rate_sum / class_num
+
+
+	def generalized_accuracy(self, dist_matrix, Y_test_full, k_of_topk = 1):
+		y_pred = np.argsort(dist_matrix, axis = 0)[:k_of_topk, :]
+		pred_correct = np.sum((y_pred == Y_test_full).astype(np.int32), axis = 0)
+
+		count_table = {}
+		correct_count_table = {}
+		for idx, label in enumerate(Y_test_full):
+			if label in count_table:
+				count_table[label] += 1
+			else:
+				count_table[label] = 1
+
+			if pred_correct[idx] == 1:
+				if label in correct_count_table:
+					correct_count_table[label] += 1
+				else:
+					correct_count_table[label] = 1
+
+		print("top", k_of_topk, "correctly classify:")
+		print(correct_count_table)
+		print("total number in each class:")
+		print(count_table)
+
+		seen_class_num = 0
+		seen_correct_rate_sum = 0.0
+		unseen_class_num = 0
+		# Or, unseen_class_num = len(self.unseen_class) since unseen_class should not contain any duplicate
+		unseen_correct_rate_sum = 0.0
+		for label, count in count_table.iteritems():
+			if label in self.unseen_class:
+				unseen_class_num += 1
+				if label in correct_count_table:
+					unseen_correct_rate_sum += float(correct_count_table[label]) / count
+			else:
+				seen_class_num += 1
+				if label in correct_count_table:
+					seen_correct_rate_sum += float(correct_count_table[label]) / count
+
+		unseen_accuracy = unseen_correct_rate_sum / unseen_class_num
+		seen_accuracy = seen_correct_rate_sum / seen_class_num
+
+		harmonic_mean_accuracy = 2 * unseen_accuracy * seen_accuracy / (unseen_accuracy + seen_accuracy)
+
+		unseen_and_seen_accuracy = (unseen_correct_rate_sum + seen_correct_rate_sum) / (unseen_class_num + seen_class_num)
+
+		return [unseen_accuracy, unseen_and_seen_accuracy, harmonic_mean_accuracy]
