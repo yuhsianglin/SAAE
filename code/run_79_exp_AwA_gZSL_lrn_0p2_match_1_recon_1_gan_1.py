@@ -22,7 +22,7 @@ def main(_):
 	gaus_mean = 0.21
 	gaus_stddev = 0.25
 
-	coef_match = 10
+	coef_match = 1
 	coef_recon = 1
 	coef_gan = 1
 
@@ -32,19 +32,19 @@ def main(_):
 
 	save_model_period = 1
 
-	generalizedZSL = False
+	generalizedZSL = True
 
-	unseen_class_file_name = "../AwA_standardZSL/unseen_class.npy"
+	unseen_class_file_name = "../AwA_generalizedZSL/unseen_class.npy"
 
-	train_file_name = "../AwA_standardZSL/xTrain_scaled.npy"
-	test_file_name = "../AwA_standardZSL/xTest_scaled.npy"
+	train_file_name = "../AwA_generalizedZSL/xTrain_scaled.npy"
+	test_file_name = "../AwA_generalizedZSL/xTest_scaled.npy"
 
-	train_label_file_name = "../AwA_standardZSL/yTrain.npy"
-	test_label_file_name = "../AwA_standardZSL/yTest.npy"
+	train_label_file_name = "../AwA_generalizedZSL/yTrain.npy"
+	test_label_file_name = "../AwA_generalizedZSL/yTest.npy"
 
-	test_attr_file_name = "../AwA_standardZSL/sTest_scaled.npy"
+	test_attr_file_name = "../AwA_generalizedZSL/sTest_scaled.npy"
 
-	log_directory = "./log/log_76_exp_AwA_sZSL_lrn_0p2_match_10_recon_1_gan_1"
+	log_directory = "./log/log_79_exp_AwA_gZSL_lrn_0p2_match_1_recon_1_gan_1"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
