@@ -9,6 +9,8 @@ import tensorflow as tf
 import dataset
 
 
+# Linear
+
 class aeexp1(object):
 	def __init__(self,
 		input_dim, attr_dim, disp_dim,
