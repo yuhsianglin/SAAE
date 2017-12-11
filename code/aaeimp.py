@@ -140,7 +140,7 @@ class aaeimp(object):
 			tf.add_to_collection("train_disc_step", train_disc_step)
 
 			# Test time
-			dist_from_t = -tf.transpose( tf.matmul( T_from_X, tf.reshape( t, [ self.attr_dim, 1 ] ) ) )[0] / tf.sqrt( tf.reduce_sum( T_from_X * T_from_X, axis = 1 ) * tf.reduce_sum( t * t ) )
+			dist_from_t = -tf.transpose( tf.matmul( H, tf.reshape( t, [ self.hid_dim, 1 ] ) ) )[0] / tf.sqrt( tf.reduce_sum( H * H, axis = 1 ) * tf.reduce_sum( t * t ) )
 			tf.add_to_collection("dist_from_t", dist_from_t)
 
 			# --Set up graph--
@@ -187,8 +187,8 @@ class aaeimp(object):
 
 			self.data.initialize_batch("train", batch_size = self.train_batch_size)
 			while self.data.has_next_batch():
-				X_batch, Y_batch, index_vector, _ = self.data.next_batch()
-				T_batch = self.attr_data.get_batch("train", index_vector)
+				X_batch, Y_batch, _, _ = self.data.next_batch()
+				T_batch = self.attr_data.get_batch("test", Y_batch)
 				feed_dict = {X: X_batch, T: T_batch}
 				sess.run(train_gen_step, feed_dict = feed_dict)
 				sess.run(train_disc_step, feed_dict = feed_dict)
@@ -228,9 +228,10 @@ class aaeimp(object):
 			train_recon_loss_given == None or \
 			train_match_loss_given == None:
 
+			self.data.initialize_batch("train")
 			# Use full batch for train
-			X_full = self.data.train_X
-			T_full = self.attr_data.train_X
+			X_full, Y_batch, _, _ = self.data.next_batch()
+			T_full = self.attr_data.get_batch("test", Y_batch)
 			feed_dict = {X: X_full, T: T_full}
 			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = sess.run([gen_loss, disc_loss, recon_loss, match_loss], feed_dict = feed_dict)
 		else:
