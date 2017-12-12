@@ -9,13 +9,14 @@ import tensorflow as tf
 import dataset
 
 
-# Use negative cosine similarity => good
+# SAE structure + GAN
 
-class sae3(object):
+class aaeexp41(object):
 	def __init__(self,
-		input_dim, attr_dim,
+		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
-		coef_match = 1.0,
+		gaus_mean = 0.0, gaus_stddev = 1.0,
+		coef_match = 1.0, coef_recon = 1.0, coef_gan = 1.0,
 		unseen_class_file_name = None,
 		train_file_name = None,
 		val_file_name = None,
@@ -31,14 +32,20 @@ class sae3(object):
 		generalizedZSL = False):
 
 		self.input_dim = input_dim
-		self.attr_dim = attr_dim
+		self.hid_dim = hid_dim
+		self.d1 = d1
 
 		self.lrn_rate = lrn_rate
 		self.train_batch_size = train_batch_size
 		self.epoch_max = epoch_max
 		self.momentum = momentum
 
+		self.gaus_mean = gaus_mean
+		self.gaus_stddev = gaus_stddev
+
 		self.coef_match = coef_match
+		self.coef_recon = coef_recon
+		self.coef_gan = coef_gan
 
 		self.unseen_class = np.load(unseen_class_file_name)
 
@@ -67,39 +74,87 @@ class sae3(object):
 		if self.load_model_directory == None:
 			# --Model parameters--
 			# Encoder
-			rng = 1.0 / math.sqrt( float( self.input_dim + self.attr_dim ) )
-			W = tf.Variable( tf.random_uniform( [self.input_dim, self.attr_dim], minval = -rng, maxval = rng ), name = "W" )
+			rng_ae = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
+			W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng_ae, maxval = rng_ae ), name = "W_e" )
+			#b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
+			
+			# Decoder
+			# Weight is tied (W_d = W_e^T)
+			#b_d = tf.Variable(tf.zeros([self.input_dim]), name = "b_d")
+			
+			# Discriminator
+			# Layer 1
+			rng1 = 1.0 / math.sqrt( float( self.hid_dim + self.d1 ) )
+			W1 = tf.Variable( tf.random_uniform( [self.hid_dim, self.d1], minval = -rng1, maxval = rng1 ), name = "W1" )
+			b1 = tf.Variable(tf.zeros([self.d1]), name = "b1")
+			# Layer 2
+			rng2 = 1.0 / math.sqrt( float( self.d1 + 1 ) )
+			W2 = tf.Variable( tf.random_uniform( [self.d1, 1], minval = -rng2, maxval = rng2 ), name = "W2" )
+			b2 = tf.Variable(tf.zeros([1]), name = "b2")
 
 			# --Data and prior--
 			# Input image features, shape = [batch_size, input_dim]
 			X = tf.placeholder( tf.float32, [None, self.input_dim], name = "X" )
-			# Text attributes describing the class, shape [batch_size, attr_dim]
-			T = tf.placeholder( tf.float32, [None, self.attr_dim], name = "T" )
+			# Positive samples, shape [batch_size, hid_dim]
+			Z = tf.placeholder( tf.float32, [None, self.hid_dim], name = "Z" )
+			# Text features/attributes describing the class, shape [batch_size, hid_dim]
+			T = tf.placeholder( tf.float32, [None, self.hid_dim], name = "T" )
 			# Test time, the text features/attributes of a single unseen class
-			t = tf.placeholder(tf.float32, [self.attr_dim], name = "t")
+			t = tf.placeholder(tf.float32, [self.hid_dim], name = "t")
 
 			# --Build model--
-			# Autoencoder---it's more like domain transfer function
-			T_from_X = tf.matmul(X, W)
-			X_from_T = tf.matmul(T, tf.transpose(W))
+			# Autoencoder
+			#H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
+			H = tf.matmul(X, W_e)
+			
+			# Compute output as logit, to feed input of tf entropy function
+			# X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
+			# Compute output after activation function (e.g. sigmoid) if using mean square loss
+			#X_tilde = tf.sigmoid( tf.matmul(H, tf.transpose(W_e)) + b_d )
+			
+			# This is the magical SAE formula
+			X_tilde = tf.matmul(T, tf.transpose(W_e))
 
-			# Match loss
-			# Frobenious norm of a batch of vector differences
-			match_loss = tf.reduce_mean(tf.pow(T_from_X - T, 2))
-			tf.add_to_collection("match_loss", match_loss)
+			# Note that this is an average over the total number of features (batch_size * input_dim)
+			# ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
+			# To get average over only the number of instances (batch_size), use the following line
+			# ave_entropy = tf.reduce_mean( tf.reduce_sum( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit), axis = 1 ) )
+			# To use square loss, use the following line
+			mean_square_loss = tf.reduce_mean(tf.pow(X_tilde - X, 2))
 
-			# Reconstruction loss
-			# L2 norm of vector difference, average over size of batch
-			recon_loss = tf.reduce_mean(tf.pow(X_from_T - X, 2))
+			recon_loss = mean_square_loss
 			tf.add_to_collection("recon_loss", recon_loss)
 
+			# Discriminate positive samples
+			# Use Gaussian random as positive samples
+			Z1_pos = tf.sigmoid( tf.matmul(Z, W1) + b1 )
+			Z2_pos = tf.sigmoid( tf.matmul(Z1_pos, W2) + b2 )
+			disc_res_pos = Z2_pos
+
+			# Discriminate negative sample, which is the encoded representation
+			Z1_neg = tf.sigmoid( tf.matmul(H, W1) + b1 )
+			Z2_neg = tf.sigmoid( tf.matmul(Z1_neg, W2) + b2 )
+			disc_res_neg = Z2_neg
+
+			# Explicit match to text features/attributes
+			# match_loss = tf.reduce_mean( tf.reduce_sum( tf.pow(T - H, 2), axis = 1 ) )
+			match_loss = tf.reduce_mean(tf.pow(T - H, 2))
+			tf.add_to_collection("match_loss", match_loss)
+
+			# GAN
+			gen_loss = tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
+			disc_loss = -tf.reduce_mean( tf.log( disc_res_pos ) ) - tf.reduce_mean( tf.log( 1.0 - disc_res_neg ) )
+			tf.add_to_collection("gen_loss", gen_loss)
+			tf.add_to_collection("disc_loss", disc_loss)
+
 			# Training objectives
-			train_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(recon_loss + self.coef_match * match_loss)
-			tf.add_to_collection("train_step", train_step)
+			train_gen_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_match * match_loss + self.coef_recon * recon_loss)
+			#train_disc_step = tf.train.AdagradOptimizer(self.lrn_rate).minimize(self.coef_gan * disc_loss)
+			tf.add_to_collection("train_gen_step", train_gen_step)
+			#tf.add_to_collection("train_disc_step", train_disc_step)
 
 			# Test time
-			# dist_from_t = tf.reduce_sum( tf.pow(T_from_X - t, 2), axis = 1 )
-			dist_from_t = -tf.transpose( tf.matmul( T_from_X, tf.reshape( t, [ self.attr_dim, 1 ] ) ) )[0] / tf.sqrt( tf.reduce_sum( T_from_X * T_from_X, axis = 1 ) * tf.reduce_sum( t * t ) )
+			dist_from_t = -tf.transpose( tf.matmul( H, tf.reshape( t, [ self.hid_dim, 1 ] ) ) )[0] / tf.sqrt( tf.reduce_sum( H * H, axis = 1 ) * tf.reduce_sum( t * t ) )
 			tf.add_to_collection("dist_from_t", dist_from_t)
 
 			# --Set up graph--
@@ -111,23 +166,33 @@ class sae3(object):
 			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_directory))
 			graph = tf.get_default_graph()
 
-			W = graph.get_tensor_by_name("W:0")
+			W_e = graph.get_tensor_by_name("W_e:0")
+			#b_e = graph.get_tensor_by_name("b_e:0")
+			#b_d = graph.get_tensor_by_name("b_d:0")
+			W1 = graph.get_tensor_by_name("W1:0")
+			b1 = graph.get_tensor_by_name("b1:0")
+			W2 = graph.get_tensor_by_name("W2:0")
+			b2 = graph.get_tensor_by_name("b2:0")
 
 			X = graph.get_tensor_by_name("X:0")
+			Z = graph.get_tensor_by_name("Z:0")
 			T = graph.get_tensor_by_name("T:0")
 			t = graph.get_tensor_by_name("t:0")
 
-			match_loss = tf.get_collection("match_loss")[0]
+			gen_loss = tf.get_collection("gen_loss")[0]
+			disc_loss = tf.get_collection("disc_loss")[0]
 			recon_loss = tf.get_collection("recon_loss")[0]
-			train_step = tf.get_collection("train_step")[0]
+			match_loss = tf.get_collection("match_loss")[0]
+			train_gen_step = tf.get_collection("train_gen_step")[0]
+			train_disc_step = tf.get_collection("train_disc_step")[0]
 			dist_from_t = tf.get_collection("dist_from_t")[0]
 
 		epoch = 0
 		log_file = open(self.log_file_name_head + ".txt", "w+")
 
 		self.write_log(log_file,
-			sess, X, T, t,
-			match_loss, recon_loss, dist_from_t,
+			sess, X, T, Z, t,
+			gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 			epoch = epoch, epoch_time = 0.0, total_time = 0.0, eval_test = True)
 
 		total_time_begin = time.time()
@@ -138,8 +203,10 @@ class sae3(object):
 			while self.data.has_next_batch():
 				X_batch, Y_batch, _, _ = self.data.next_batch()
 				T_batch = self.attr_data.get_batch("test", Y_batch)
-				feed_dict = {X: X_batch, T: T_batch}
-				sess.run(train_step, feed_dict = feed_dict)
+				Z_batch = np.random.normal(self.gaus_mean, self.gaus_stddev, T_batch.shape)
+				feed_dict = {X: X_batch, T: T_batch, Z: Z_batch}
+				sess.run(train_gen_step, feed_dict = feed_dict)
+				#sess.run(train_disc_step, feed_dict = feed_dict)
 			# End of all mini-batches in an epoch
 
 			epoch_time = time.time() - epoch_time_begin
@@ -148,14 +215,14 @@ class sae3(object):
 			if epoch % self.save_model_period == 0:
 				saver.save(sess, self.log_file_name_head)
 				self.write_log(log_file,
-					sess, X, T, t,
-					match_loss, recon_loss, dist_from_t,
+					sess, X, T, Z, t,
+					gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = True)
 			else:
 				self.write_log(log_file,
-					sess, X, T, t,
-					match_loss, recon_loss, dist_from_t,
+					sess, X, T, Z, t,
+					gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 					epoch = epoch, epoch_time = epoch_time, total_time = total_time,
 					eval_test = False)
 		# End of all epochs
@@ -164,24 +231,27 @@ class sae3(object):
 
 	# Write log
 	def write_log(self, log_file,
-		sess, X, T, t,
-		match_loss, recon_loss, dist_from_t,
+		sess, X, T, Z, t,
+		gen_loss, disc_loss, recon_loss, match_loss, dist_from_t,
 		epoch = 0, epoch_time = 0.0, total_time = 0.0,
-		train_match_loss_given = None,
-		train_recon_loss_given = None,
+		train_gen_loss_given = None, train_disc_loss_given = None,
+		train_recon_loss_given = None, train_match_loss_given = None,
 		eval_test = False):
 
-		if train_match_loss_given == None or \
-			train_recon_loss_given == None:
+		if train_gen_loss_given == None or \
+			train_disc_loss_given == None or \
+			train_recon_loss_given == None or \
+			train_match_loss_given == None:
 
+			self.data.initialize_batch("train")
 			# Use full batch for train
-			X_full = self.data.train_X
-			Y_full = self.data.train_Y
-			T_full = self.attr_data.get_batch("test", Y_full)
-			feed_dict = {X: X_full, T: T_full}
-			train_match_loss_got, train_recon_loss_got = sess.run([match_loss, recon_loss], feed_dict = feed_dict)
+			X_full, Y_batch, _, _ = self.data.next_batch()
+			T_full = self.attr_data.get_batch("test", Y_batch)
+			Z_full = np.random.normal(self.gaus_mean, self.gaus_stddev, T_full.shape)
+			feed_dict = {X: X_full, T: T_full, Z: Z_full}
+			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = sess.run([gen_loss, disc_loss, recon_loss, match_loss], feed_dict = feed_dict)
 		else:
-			train_match_loss_got, train_recon_loss_got = [train_match_loss_given, train_recon_loss_given]
+			train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got = [train_gen_loss_given, train_disc_loss_given, train_recon_loss_given, train_match_loss_given]
 
 		if eval_test:
 			if self.generalizedZSL:
@@ -198,12 +268,7 @@ class sae3(object):
 				dist_matrix = np.array(dist_matrix)
 
 				# Generalized zero-shot learning, test time both unseen and seen classes
-				#_, test_top_1_accuracy, harmonic_top_1 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-				#_, test_top_5_accuracy, harmonic_top_5 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
 				_, test_top_1_accuracy, _ = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-
-				#print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, harmonic_top_1 * 100, harmonic_top_5 * 100, epoch_time, total_time)
-				#log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, harmonic_top_1, harmonic_top_5, epoch_time, total_time)
 
 				print_string = "%d\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
 				log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, epoch_time, total_time)
@@ -228,20 +293,13 @@ class sae3(object):
 				dist_matrix = np.array(dist_matrix)
 
 				# Standard zero-shot learning, test time only unseen classes
-				#test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
-				#test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 5)
 				test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
 
-				#print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
-				#log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
-				print_string = "%d\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
-				log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, epoch_time, total_time)
-
+				print_string = "%d\t%f\t%f\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, test_top_1_accuracy, epoch_time, total_time)
 		else:
-			#print_string = "%d\t%f\t%f\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
-			#log_string = '%d\t%f\t%f\t--------\t--------\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
-			print_string = "%d\t%f\t%f\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
-			log_string = '%d\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
+			print_string = "%d\t%f\t%f\t%f\t%f\t%f\t%f" % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\t--------\t%f\t%f\n' % (epoch, train_gen_loss_got, train_disc_loss_got, train_recon_loss_got, train_match_loss_got, epoch_time, total_time)
 
 		print(print_string)
 		log_file.write(log_string)

@@ -9,6 +9,8 @@ import tensorflow as tf
 import dataset
 
 
+# Use Euclidean distance => doesn't work
+
 class sae2(object):
 	def __init__(self,
 		input_dim, attr_dim,
