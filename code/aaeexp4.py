@@ -9,7 +9,9 @@ import tensorflow as tf
 import dataset
 
 
-class aaeexp2(object):
+# SAE structure + GAN
+
+class aaeexp4(object):
 	def __init__(self,
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
@@ -74,11 +76,11 @@ class aaeexp2(object):
 			# Encoder
 			rng_ae = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
 			W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng_ae, maxval = rng_ae ), name = "W_e" )
-			b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
+			#b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
 			
 			# Decoder
 			# Weight is tied (W_d = W_e^T)
-			b_d = tf.Variable(tf.zeros([self.input_dim]), name = "b_d")
+			#b_d = tf.Variable(tf.zeros([self.input_dim]), name = "b_d")
 			
 			# Discriminator
 			# Layer 1
@@ -103,13 +105,15 @@ class aaeexp2(object):
 			# --Build model--
 			# Autoencoder
 			#H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
-			H = tf.matmul(X, W_e) + 0.000001 * b_e
+			H = tf.matmul(X, W_e)
 			
 			# Compute output as logit, to feed input of tf entropy function
 			# X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
 			# Compute output after activation function (e.g. sigmoid) if using mean square loss
 			#X_tilde = tf.sigmoid( tf.matmul(H, tf.transpose(W_e)) + b_d )
-			X_tilde = tf.matmul(H, tf.transpose(W_e)) + 0.000001 * b_d
+			
+			# This is the magical SAE formula
+			X_tilde = tf.matmul(T, tf.transpose(W_e))
 
 			# Note that this is an average over the total number of features (batch_size * input_dim)
 			# ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
@@ -117,7 +121,7 @@ class aaeexp2(object):
 			# ave_entropy = tf.reduce_mean( tf.reduce_sum( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit), axis = 1 ) )
 			# To use square loss, use the following line
 			mean_square_loss = tf.reduce_mean(tf.pow(X_tilde - X, 2))
-			
+
 			recon_loss = mean_square_loss
 			tf.add_to_collection("recon_loss", recon_loss)
 
@@ -163,8 +167,8 @@ class aaeexp2(object):
 			graph = tf.get_default_graph()
 
 			W_e = graph.get_tensor_by_name("W_e:0")
-			b_e = graph.get_tensor_by_name("b_e:0")
-			b_d = graph.get_tensor_by_name("b_d:0")
+			#b_e = graph.get_tensor_by_name("b_e:0")
+			#b_d = graph.get_tensor_by_name("b_d:0")
 			W1 = graph.get_tensor_by_name("W1:0")
 			b1 = graph.get_tensor_by_name("b1:0")
 			W2 = graph.get_tensor_by_name("W2:0")
