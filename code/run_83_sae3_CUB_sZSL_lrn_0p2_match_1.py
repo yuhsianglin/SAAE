@@ -2,17 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
-import time
 import os
 import tensorflow as tf
-import dataset
-import sae2
+import sae3
 
 
 def main(_):
 	input_dim = 1024
-	attr_dim = 85
+	attr_dim = 312
 
 	lrn_rate = 0.2
 	train_batch_size = 64
@@ -20,27 +17,27 @@ def main(_):
 
 	#momentum = 0.9
 
-	coef_match = 100
+	coef_match = 1
 
-	train_size = 24295
-	test_size = 6180
+	train_size = 8822
+	test_size = 2966
 	#reg_lambda = 1.0 / train_size
 
 	save_model_period = 1
 
 	generalizedZSL = False
 
-	unseen_class_file_name = "../AwA_standardZSL/unseen_class.npy"
+	unseen_class_file_name = "../CUB_200_2011_standardZSL/unseen_class.npy"
 
-	train_file_name = "../AwA_standardZSL/xTrain_scaled.npy"
-	test_file_name = "../AwA_standardZSL/xTest_scaled.npy"
+	train_file_name = "../CUB_200_2011_standardZSL/xTrain_scaled.npy"
+	test_file_name = "../CUB_200_2011_standardZSL/xTest_scaled.npy"
 
-	train_label_file_name = "../AwA_standardZSL/yTrain.npy"
-	test_label_file_name = "../AwA_standardZSL/yTest.npy"
+	train_label_file_name = "../CUB_200_2011_standardZSL/yTrain.npy"
+	test_label_file_name = "../CUB_200_2011_standardZSL/yTest.npy"
 
-	test_attr_file_name = "../AwA_standardZSL/sTest_scaled.npy"
+	test_attr_file_name = "../CUB_200_2011_standardZSL/sTest_scaled.npy"
 
-	log_directory = "./log/log_60_sae2_AwA_lrn_0p2_match_100"
+	log_directory = "./log/log_83_sae3_CUB_sZSL_lrn_0p2_match_1"
 	log_file_name_head = log_directory + "/log"
 	if not os.path.exists(log_directory):
 		os.makedirs(log_directory)
@@ -48,7 +45,7 @@ def main(_):
 	#load_model_directory = "./log/log_27_lrn_0p02_data_AwA_match_1_adagrad_2"
 	load_model_directory = None
 
-	machine = sae2.sae2(
+	machine = sae3.sae3(
 		input_dim, attr_dim,
 		lrn_rate, train_batch_size, epoch_max, #momentum = momentum,
 		coef_match = coef_match,

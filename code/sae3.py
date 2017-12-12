@@ -196,11 +196,15 @@ class sae3(object):
 				dist_matrix = np.array(dist_matrix)
 
 				# Generalized zero-shot learning, test time both unseen and seen classes
-				_, test_top_1_accuracy, harmonic_top_1 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
-				_, test_top_5_accuracy, harmonic_top_5 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
+				#_, test_top_1_accuracy, harmonic_top_1 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
+				#_, test_top_5_accuracy, harmonic_top_5 = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 5)
+				_, test_top_1_accuracy, _ = self.generalized_accuracy(dist_matrix, Y_test_full, k_of_topk = 1)
 
-				print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, harmonic_top_1 * 100, harmonic_top_5 * 100, epoch_time, total_time)
-				log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, harmonic_top_1, harmonic_top_5, epoch_time, total_time)
+				#print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, harmonic_top_1 * 100, harmonic_top_5 * 100, epoch_time, total_time)
+				#log_string = '%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, harmonic_top_1, harmonic_top_5, epoch_time, total_time)
+
+				print_string = "%d\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, epoch_time, total_time)
 
 			# Standard ZSL
 			else:
@@ -222,15 +226,20 @@ class sae3(object):
 				dist_matrix = np.array(dist_matrix)
 
 				# Standard zero-shot learning, test time only unseen classes
+				#test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
+				#test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 5)
 				test_top_1_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 1)
-				test_top_5_accuracy = self.top_k_per_class_accuracy(dist_matrix, Y_test_full, rowidx_label_table, k_of_topk = 5)
 
-				print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
-				log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+				#print_string = "%d\t%f\t%f\n  %f%%\t%f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, test_top_5_accuracy * 100, epoch_time, total_time)
+				#log_string = '%d\t%f\t%f\t%f\t%f\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, test_top_5_accuracy, epoch_time, total_time)
+				print_string = "%d\t%f\t%f\n  %f%%\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy * 100, epoch_time, total_time)
+				log_string = '%d\t%f\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, test_top_1_accuracy, epoch_time, total_time)
 
 		else:
+			#print_string = "%d\t%f\t%f\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
+			#log_string = '%d\t%f\t%f\t--------\t--------\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
 			print_string = "%d\t%f\t%f\t%f\t%f" % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
-			log_string = '%d\t%f\t%f\t--------\t--------\t--------\t--------\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
+			log_string = '%d\t%f\t%f\t%f\t%f\n' % (epoch, train_match_loss_got, train_recon_loss_got, epoch_time, total_time)
 
 		print(print_string)
 		log_file.write(log_string)
