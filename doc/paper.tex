@@ -25,6 +25,8 @@
 \usepackage{graphicx}	% for \includegraphics{filename}
 \usepackage{subcaption}	% for \begin{subfigure}[t]{0.5\textwidth}
 
+\usepackage{courier}	% for \texttt{}
+
 \newcommand{\bb}[1]{\boldsymbol{#1}}
 
 \title{Semantic Adversarial Autoencoder for Zero-Shot Learning}
@@ -81,7 +83,9 @@ On the other hand, autoencoder has shown its great express power to present comp
 
 The fundamental problem of ZSL is to extract semantically meaningful feature embeddings that could bridge the gap between similar image/text features and fine-grained classes. Autoencoder becomes an ideal option for this task because it can automatically learn representative features. In \cite{kodirov2017semantic}, the authors present a novel solution to zero-shot learning, the Semantic Autoencoder (SAE). Taking the encoder-decoder paradigm, an encoder aims to project a visual feature vector into the semantic space as in the existing zero-learning shot models, and the decoder should be able to reconstruct the original visual feature. Their results show that under this framework, the learned projection function from the seen classes is able to generalize better to the new unseen classes. One shortcoming of this model is that the encoder tends to learn similar features across multiple classes, which is disappointing for the task of fine-grained classification. 
 
-Inspired by these models, we propose the model of Semantic adversarial autoencoder (SAAE). In this model, we have an encoder that projects a visual feature vector into the semantic space and a decoder that decodes and reconstructs the original visual features. Besides, we incorporates a discriminator as in \cite{makhzani2015adversarial} to ensure that generating from any part of prior space results in meaningful samples. Two types of models that use different priors are investigated. In one type of the model, the prior is the Gaussian noise prior, and in the other type the semantic representation itself is used as the prior.
+Inspired by these models, we propose the model of semantic adversarial autoencoder (SAAE)%
+\footnote{The code is available on \texttt{https://github.com/yuhsianglin/10707DL\_proj}.}%
+. In this model, we have an encoder that projects a visual feature vector into the semantic space and a decoder that decodes and reconstructs the original visual features. Besides, we incorporates a discriminator as in \cite{makhzani2015adversarial} to ensure that generating from any part of prior space results in meaningful samples. Two types of models that use different priors are investigated. In one type of the model, the prior is the Gaussian noise prior, and in the other type the semantic representation itself is used as the prior.
 
 % In this project we plan to explore how to develop an effective transfer learning algorithm, with focus on zero-shot learning and its combination with several popular deep learning methods, such as convolutional neural network, attention models, and Adversarial training, to detect unseen objects only with text description. \\
 % Zero-shot learning consists in learning how to recognize new concepts by just having a description of them. State-of-the-art methods for zero-shot recognition formulate learning as a embedding problem of images and side information like text \cite{Elhoseiny2013}. We propose a model that can classify unseen categories from their textual description. Inspired by the fact that there is little supervision on text data, certain noise-cancelling techniques could be applied to improve the performance of our model.\\
