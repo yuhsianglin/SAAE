@@ -280,7 +280,7 @@ For transfer learning tasks, the semantic autoencoder (SAE) \cite{kodirov2017sem
 	\begin{align}
 		\min_{W^1, \bb{b}^1, \bb{w}^2, b^2} \; f_d,
 	\end{align}
-	while the parameters of the generator ($W^e, \bb{b}^e, W^d, \bb{b}^d$) are held constant.
+	while the parameters of the generator ($W^e$) are held constant.
 
 
 % ----------------------------------------------------
@@ -313,13 +313,13 @@ For transfer learning tasks, the semantic autoencoder (SAE) \cite{kodirov2017sem
 
 	We also check whether adding GAN to the original architecture of SAE will change the performance of SAE. We solve the following optimization problem,
 	\begin{align}
-		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G_{\textrm{SAE}}(\bb{x})) ) + L_{\textrm{SAE}} \;\right],
+		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \lambda_{\textrm{GAN}} \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \lambda_{\textrm{GAN}} \log( 1 - D(G_{\textrm{SAE}}(\bb{x})) ) + \lambda_{\textrm{SAE}} L_{\textrm{SAE}} \;\right],
 	\end{align}
 	where
 	\begin{align}
-		G_{\textrm{SAE}}(\bb{x}) = W \bb{x}.
+		G_{\textrm{SAE}}(\bb{x}) = W \bb{x},
 	\end{align}
-
+	and $\lambda_{\textrm{GAN}}$ and $\lambda_{\textrm{SAE}}$ are introduced to specify the relative importance of the GAN and SAE parts in the optimization objective.
 
 
 
@@ -446,7 +446,7 @@ We note that SAE gives the best performance when the coefficient $\lambda$ in \e
 
 \subsection{SAE-GAN}
 
-By adding GAN on top of the SAE, we find that on the AwA dataset it improves the accuracy, but on the CUB dataset it does not. For the standard ZSL on the AwA dataset, in which GAN makes the most significant improvement, we conduct more detailed experiments to check how accuracy changes by using different coefficients for the GAN. The results are shown in Table \ref{tab:SAEGAN}. We observe that with suitable coefficient, GAN slightly improves the accuracy, but if the coefficient of GAN is too large, it harms the performance.
+By adding GAN on top of the SAE, we find that on the AwA dataset it improves the accuracy, but on the CUB dataset it does not. For the standard ZSL on the AwA dataset, in which GAN makes the most significant improvement, we conduct more detailed experiments to check how accuracy changes by using different coefficients $\lambda_{\textrm{GAN}}$ for the GAN while keeping $\lambda_{\textrm{SAE}}$ fixed. The results are shown in Table \ref{tab:SAEGAN}. We observe that with suitable coefficient, GAN slightly improves the accuracy, but if the coefficient of GAN is too large, it harms the performance.
 
 
 \begin{table}[t]
