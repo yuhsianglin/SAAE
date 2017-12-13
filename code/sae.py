@@ -11,7 +11,7 @@ import dataset
 
 # Use negative cosine similarity => good
 
-class sae3(object):
+class sae(object):
 	def __init__(self,
 		input_dim, attr_dim,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,

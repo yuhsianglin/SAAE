@@ -9,9 +9,7 @@ import tensorflow as tf
 import dataset
 
 
-# Take off biases, use tanh, both match/recon use mean square loss and reduce_mean to each matrix element
-
-class aaeexp3(object):
+class aaeexp(object):
 	def __init__(self,
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
@@ -76,11 +74,11 @@ class aaeexp3(object):
 			# Encoder
 			rng_ae = 1.0 / math.sqrt( float( self.input_dim + self.hid_dim ) )
 			W_e = tf.Variable( tf.random_uniform( [self.input_dim, self.hid_dim], minval = -rng_ae, maxval = rng_ae ), name = "W_e" )
-			#b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
+			b_e = tf.Variable(tf.zeros([self.hid_dim]), name = "b_e")
 			
 			# Decoder
 			# Weight is tied (W_d = W_e^T)
-			#b_d = tf.Variable(tf.zeros([self.input_dim]), name = "b_d")
+			b_d = tf.Variable(tf.zeros([self.input_dim]), name = "b_d")
 			
 			# Discriminator
 			# Layer 1
@@ -104,23 +102,19 @@ class aaeexp3(object):
 
 			# --Build model--
 			# Autoencoder
-			#H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
-			H = tf.tanh(tf.matmul(X, W_e))
+			H = tf.sigmoid( tf.matmul(X, W_e) + b_e )
 			
 			# Compute output as logit, to feed input of tf entropy function
-			# X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
+			X_tilde_logit = tf.matmul(H, tf.transpose(W_e)) + b_d
 			# Compute output after activation function (e.g. sigmoid) if using mean square loss
-			#X_tilde = tf.sigmoid( tf.matmul(H, tf.transpose(W_e)) + b_d )
-			X_tilde = tf.tanh(tf.matmul(H, tf.transpose(W_e)))
+			# X_tilde = tf.sigmoid( tf.matmul(H, tf.transpose(W_e)) + b_d )
 
 			# Note that this is an average over the total number of features (batch_size * input_dim)
-			# ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
+			ave_entropy = tf.reduce_mean( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit) )
 			# To get average over only the number of instances (batch_size), use the following line
 			# ave_entropy = tf.reduce_mean( tf.reduce_sum( tf.nn.sigmoid_cross_entropy_with_logits(labels = X, logits = X_tilde_logit), axis = 1 ) )
-			# To use square loss, use the following line
-			mean_square_loss = tf.reduce_mean(tf.pow(X_tilde - X, 2))
-
-			recon_loss = mean_square_loss
+			
+			recon_loss = ave_entropy
 			tf.add_to_collection("recon_loss", recon_loss)
 
 			# Discriminate positive samples
@@ -135,8 +129,7 @@ class aaeexp3(object):
 			disc_res_neg = Z2_neg
 
 			# Explicit match to text features/attributes
-			# match_loss = tf.reduce_mean( tf.reduce_sum( tf.pow(T - H, 2), axis = 1 ) )
-			match_loss = tf.reduce_mean(tf.pow(T - H, 2))
+			match_loss = tf.reduce_mean( tf.reduce_sum( tf.pow(T - H, 2), axis = 1 ) )
 			tf.add_to_collection("match_loss", match_loss)
 
 			# GAN
@@ -160,20 +153,20 @@ class aaeexp3(object):
 			saver = tf.train.Saver()
 		else:
 			# --Load graph--
-			saver = tf.train.import_meta_graph(self.load_model_directory + "/log.meta")
-			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_directory))
+			saver = tf.train.import_meta_graph(self.load_model_file_directory + "/log.meta")
+			saver.restore(sess, tf.train.latest_checkpoint(self.load_model_file_directory))
 			graph = tf.get_default_graph()
 
 			W_e = graph.get_tensor_by_name("W_e:0")
-			#b_e = graph.get_tensor_by_name("b_e:0")
-			#b_d = graph.get_tensor_by_name("b_d:0")
+			b_e = graph.get_tensor_by_name("b_e:0")
+			b_d = graph.get_tensor_by_name("b_d:0")
 			W1 = graph.get_tensor_by_name("W1:0")
 			b1 = graph.get_tensor_by_name("b1:0")
 			W2 = graph.get_tensor_by_name("W2:0")
 			b2 = graph.get_tensor_by_name("b2:0")
 
 			X = graph.get_tensor_by_name("X:0")
-			Z = graph.get_tensor_by_name("Z:0")
+			# Z = graph.get_tensor_by_name("Z:0")
 			T = graph.get_tensor_by_name("T:0")
 			t = graph.get_tensor_by_name("t:0")
 

@@ -11,7 +11,7 @@ import dataset
 
 # SAE structure + GAN
 
-class aaeexp4(object):
+class saegan(object):
 	def __init__(self,
 		input_dim, hid_dim, d1,
 		lrn_rate, train_batch_size, epoch_max, momentum = 0.0,
