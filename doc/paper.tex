@@ -154,40 +154,40 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-\section{Semantic Adversarial Autoencoder}	
-    
-\subsection{Adversarial Autoencoder}
-Adversarial autoencoder\cite{makhzani2015adversarial} is an antoencoder with a generator and a discriminator. In addition, a prior is chosen to regularize the hidden representation of the input data. During training time, the generator can generate positive samples given the prior, and the discriminator aims to discriminate the positive samples from the generator and the negative samples from the hidden layer of the autoencoder. This model structure often contributes to a clear boundary of the learned representations by simultaneously minimizing the reconstruction loss from a plain autoencoder, the loss of misclassifying negative samples from the discriminator, and the loss of failing to generate positive samples from the generator.
+\section{Semantic Adversarial Autoencoder}
 
-% ----------------------------------------------------
-% ----------------------------------------------------
+\subsection{Semantic Autoencoder}
 
-\subsection{Autoencoder models for ZSL}
-Our SAAE model is an extension of semantic autoencoder(SAE)\cite{kodirov2017semantic}. In SAE, the inputs are the image features X and the attribute representations S of the corresponding class. The original optimization problem of the SAE is
-    \begin{equation}
-    \min_{W} || \bb{x} - W^{\top} W \bb{x} ||_2^2, \quad \text{s.t.} \;\; W \bb{x} = \bb{s},
-    \end{equation}
-   where W is the parameter in the autoencoder. This model enforces the hidden representation of images in the autoencoder to mimic the corresponding semantic representation. The loss is further relaxed to  
-   \begin{equation}
-   L_{\textrm{SAE}} = || \bb{x} - W^{\top} \bb{s}||_2^2 + \lambda || W \bb{x} - \bb{s} ||_2^2,
-    \end{equation}
-where a matching coefficient $\lambda$ is introduced here to control the importance of matching semantic space representation. (2) is a globally convex function, thus W can be solved via Bartels-Stewart algorithm\cite{lu1971solution}. 
-    
-    Based on SAE, We propose two architectures, explicit SAE and implicit SAE, which incorporate the idea of adversarial autoencoder. In one of them we draw positive samples from a Gaussian prior, and explicitly require the encoding $\bb{h}^c$ to approximate the semantic representation $ \bb{t}^c$. In this case, the prior serves as a regularizer, which is presented in Sec.~\ref{subsec:NoisePrior}. In the other, we directly use the text representation as positive samples drawn from some distribution that describes a class of data, and the code is trained by the adversarial net to match the text representation. In this case, the prior guides the generator (the encoder) to learn the code that is close to the semantic representation of text, which is presented in Sec.~\ref{subsec:TextPrior}.
-
-
-
-% ----------------------------------------------------
-
-\subsection{SAAE-exp}
-\label{subsec:NoisePrior}
-	
-	The explicit SAAE\ref{fig:Architecturea} has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
+For transfer learning tasks, the semantic autoencoder (SAE) \cite{kodirov2017semantic} is a tailor-made type of antoencoder-like structure that learns the transfer function between two domains. We consider the case in which one domain is the image feature $\bb{x}$, and the other domain is the attribute $\bb{t}$ (the ``semantic representation'') that describes the corresponding image. An autoencoder is trained to learn the transfer function $W$ through the optimization problem,
 	\begin{align}
-   L_{semantic} + \min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
+	\min_{W} || \bb{x} - W^{\top} W \bb{x} ||_2^2, \quad \text{s.t.} \;\; W \bb{x} = \bb{t}.
 	\end{align}
-	The computational details are given in the Supplementary.
+	This model enforces the encoding of the image to be identical with the corresponding semantic representation. While this is a difficult constrained optimization problem, in the SAE architecture, the loss is relaxed to
+	\begin{align}
+	\label{eq:SAELoss} L_{\textrm{SAE}} = || \bb{x} - W^{\top} \bb{s}||_2^2 + \lambda || W \bb{x} - \bb{s} ||_2^2,
+	\end{align}
+	where a coefficient $\lambda$ is introduced to adjust the relative importance of the two terms. The SAE loss is a convex function, and in this form $W$ can be solved efficiently via the Bartels-Stewart algorithm \cite{lu1971solution}, which is adopted in \cite{kodirov2017semantic}.
 
+
+
+
+\subsection{Adversarial Autoencoder}
+
+	In the adversarial autoencoder \cite{makhzani2015adversarial}, a generative adversarial net (GAN) \cite{Goodfellow2014} is incorporated into the autoencoder, and the prior in the GAN is chosen to regularize the hidden representation generated by the encoder. The positive samples $\bb{z}$ are drawn from the prior $r(\bb{z})$, while the generator $G$, which is simply the encoder in this architecture, generates negative samples $G(\bb{x})$ by encoding the input $\bb{x}$, which is drawn from the underlying data distribution $p_d(\bb{x})$. During training, the discriminator $D$ is trained to tell the positive samples from the negative samples, and the generator is trained to generate samples that has the aggregated distribution mimicking the prior distribution, so as to fool the discriminator. This procedure can be described as the optimization problem,
+	\begin{align}
+		\label{eq:AAE} \min_G \max_D \; E_{\bb{z} \sim r(\bb{z})}[ \log D(\bb{z}) ] + E_{\bb{x} \sim p_d(\bb{x})}[ \log( 1 - D(G(\bb{x})) ) + L_{\text{recon}} ],
+	\end{align}
+	where $L_{\text{recon}}$ is the reconstruction loss of the autoencoder. Through this procedure, the model learns to generate the encodings whose distribution is close to that of the prior by jointly minimizing the reconstruction loss from the autoencoder, the loss of misclassifying the positive and negative samples from the discriminator, and the loss of failing to generate positive samples from the generator.
+
+
+
+% ----------------------------------------------------
+
+\subsection{Semantic Adversarial Autoencoder}
+
+	We propose the semantic adversarial autoencoder (SAAE) of which the generator learns to transfer the representation in one domain into that in another domain. The SAAE differs from the plain adversarial autoencoder in that it needs to encourage the input in one domain to be encoded into the representation in another domain (it learns a specific semantic). It also differs from SAE in that it uses the adversarial net to inject the global information of the distribution of the training data into the process of locally learning the encoding of each mini-batch of instances.
+
+	We perform experiments on two architectures: the SAAE with explicit matching (SAAE-exp) and the SAAE with implicit matching (SAAE-imp). Their architectures are shown in Figure \ref{fig:Architecture}. In SAAE-exp, we explicitly require the encoding to approximate the semantic representation, and the positive samples is drawn from the Gaussian prior. In this case, the prior serves as a regularizer. In SAAE-imp, we directly use the semantic representation as the positive samples drawn from some underlying distribution that describes the semantic representation, and the encoder is trained by the adversarial net to match the semantic representation. In this case, the prior guides the generator (the encoder) to learn the encoding that is close to the semantic representation.
 
 
 % ---------------------------------------------------------
@@ -207,23 +207,101 @@ where a matching coefficient $\lambda$ is introduced here to control the importa
         \caption{}
                     \label{fig:Architectureb}
     \end{subfigure}
-    \caption{Adversarial autoencoders with (a) Gaussian prior and explicit matching to the text representation, and (b) text representations as positive samples drawn from some underlying prior of text distribution.}
+    \caption{Semantic adversarial autoencoders with (a) Gaussian prior and explicit matching to the text (or semantic/attribute) representation, and (b) text (semantic/attribute) representations as positive samples drawn from some underlying prior of the text (semantic/attribute) distribution.}
     \label{fig:Architecture}
 \end{figure*}
 
-% ----------------------------------------------------
 
 
 % ----------------------------------------------------
 
-\subsection{SAAE-imp}
-\label{subsec:TextPrior}
-	
-	The implicit SAAE \ref{fig:Architectureb} takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form as the standard adversarial autoencoder,
+\subsubsection{SAAE-exp}
+\label{subsubsec:NoisePrior}
+
+	SAAE-exp has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The encoding $\bb{h}^c$ is explicitly required to match the text (or, semantic/attribute)%
+	\footnote{We interchangeably use ``text'', ``semantic'', and ``attribute'' in this report.} %
+	representation $\bb{t}^c$ of that class, as well as regularized by the Gaussian prior in the adversarial net. The learning task can be expressed as the optimization problem,
 	\begin{align}
-   L_{semantic} + \min_{G} \max_D E_{\bb{t} \sim r(\bb{t})}\left[\; \log D(\bb{t}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) \;\right],
+	\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
 	\end{align}
-	except that the prior serves as a guide to match the text distribution rather than as a regularizer that drives the encoding to match a Gaussian noise.
+
+	Given an input image representation $\bb{x} \in R^{d_x}$, the encoder encodes it into $\bb{h} \in R^{d_h}$ by
+	\begin{align}
+		\bb{h} = \tanh(W^e \bb{x}),
+	\end{align}
+	where $W^e \in R^{d_h \times d_x}$, and the hyperbolic tangent function is applied element-wisely. Note that the hidden representation space $R^{d_h}$ is also the space of the semantic representation; that is, $\bb{t} \in R^{d_h}$. The decoder computes
+	\begin{align}
+		\tilde{\bb{x}} = \tanh((W^e)^{\top} \bb{h}),
+	\end{align}
+	where $W^d \in R^{d_x \times d_h}$.
+	
+	The generator of the adversarial net is the encoder of the autoencoder; that is,
+	\begin{align}
+		G(\bb{x}) = \tanh(W^e \bb{x}) = \bb{h}.
+	\end{align}
+	The positive samples are drawn from the Gaussian prior,
+	\begin{align}
+		\bb{z} \sim \mathcal{N}(\mu, \sigma^2),
+	\end{align}
+	where $\bb{z} \in R^{d_h}$, and $\mu$ and $\sigma$ are chosen to be the mean and standard deviation of the semantic representation.
+	
+	We use a fully connected neural network with a single hidden layer as the discriminator. Given an input $\bb{z} \in R^{d_h}$, it computes
+	\begin{align}
+		\bb{z}^1 &= \textrm{sigmoid}( W^1 \bb{z} + \bb{b}^1 ), \\
+		%
+		z^2 &= \textrm{sigmoid}( (\bb{w}^2)^{\top} \bb{z}^1 + b^2 ),
+	\end{align}
+	where $\bb{z}^1 \in R^{d_1}$, $W^1 \in R^{d_1 \times d_h}$, $\bb{b}^1 \in R^{d_1}$, $\bb{w}^2 \in R^{d_1}$, and $b^2$ and $z^2$ are scalars. The discriminator returns
+	\begin{align}
+		D(\bb{z}) = z^2,
+	\end{align}
+	which is the estimation of the probability that $\bb{z}$ is drawn from the prior.
+	
+	For the autoencoder and the generator of the adversarial net, the loss function for a mini-batch of instances, $S$, is the empirical risk,
+	\begin{align}
+		f_g = \frac{1}{|S|} \sum_{i \in S} \left\{ \log\left[ 1 - D( \bb{h}^{(i)} ) \right] + || \bb{x}^{(i)} - \tilde{\bb{x}}^{(i)} ||_2^2 + || \bb{h}^{(i)} - \bb{t}^{c_i} ||_2^2 \right\},
+	\end{align}
+	where the log function is applied element-wisely, and $c_i$ is the class of the instance $\bb{x}^{(i)}$. Here we assume that there is only one text $\bb{t}^c$ for each class $c$.
+
+	For the discriminator of the adversarial net, the loss function is
+	\begin{align}
+		f_d = -\frac{1}{|S|} \sum_{j = 1}^{|S|} \log D( \bb{z}^{(j)} ) - \frac{1}{|S|} \sum_{i \in S} \log\left[ 1 - D( \bb{h}^{(i)} ) \right],
+	\end{align}
+	where $\bb{z}^{(j)}$ are $|S|$ samples drawn from the prior distribution $\mathcal{N}(\mu, \sigma^2)$.
+	
+	The optimization problem for the autoencoder and the generator is
+	\begin{align}
+		\min_{W^e} \; f_g,
+	\end{align}
+	while the parameters of the discriminator ($W^1, \bb{b}^1, \bb{w}^2, b^2$) are held constant. The optimization problem for the discriminator is
+	\begin{align}
+		\min_{W^1, \bb{b}^1, \bb{w}^2, b^2} \; f_d,
+	\end{align}
+	while the parameters of the generator ($W^e, \bb{b}^e, W^d, \bb{b}^d$) are held constant.
+
+
+% ----------------------------------------------------
+
+\subsubsection{SAAE-imp}
+\label{subsubsec:TextPrior}
+	
+	SAAE-imp takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the encoding is driven to match the text representation through the adversarial net itself. The encoder, decoder, generator, and discriminator are the same as described in section \ref{subsubsec:NoisePrior}. The difference is that we use the text representation, instead of Gaussian noise, as the prior in the adversarial net. For an input image $\bb{x}^{(i)}$ of class $c_i$ and the text representation $\bb{t}^{c_i}$ of this class, we use $\bb{t}^{c_i}$ as the sample drawn from some underlying prior for the representation distribution of this class,
+	\begin{align}
+		\bb{z}^{c_i} = \bb{t}^{c_i}.
+	\end{align}
+	In addition, we remove the term measuring the L2 distance between the text representation and the hidden representation of the image from the loss function.
+
+	The loss function for the autoencoder and the generator is now the standard one,
+	\begin{align}
+		f_g = \frac{1}{|S|} \sum_{i \in S} \left\{ \log\left[ 1 - D( \bb{h}^{(i)} ) \right] + || \bb{x}^{(i)} - \tilde{\bb{x}}^{(i)} ||_2^2 \right\}.
+	\end{align}
+	For the discriminator of the adversarial net, the loss function is
+	\begin{align}
+		f_d = -\frac{1}{|S|} \sum_{i \in S} \log D( \bb{t}^{c_i} ) - \frac{1}{|S|} \sum_{i \in S} \log\left[ 1 - D( \bb{h}^{(i)} ) \right].
+	\end{align}
+	
+	The optimization and test procedures are the same as those described in section \ref{subsubsec:NoisePrior}.
+
 
 
 % ----------------------------------------------------
@@ -251,10 +329,10 @@ where a matching coefficient $\lambda$ is introduced here to control the importa
 	During testing time, for standard ZSL, we are given images $\bb{x}^{uc}$ from $N_{us}$ unseen classes and semantic representations $\bb{t}^{uc}$ for those unseen classes without knowing the correspondence between $\bb{x}^{uc}$ and $\bb{t}^{uc}$. The task is to determine which unseen class each image belongs to. For generalized ZSL, the test images are not constrained to unseen classes: images from both seen and unseen classes can be used as test images and semantic representations for both classes should be provided.
 
 During testing time, we follow the same classification method as in \cite{kodirov2017semantic}. The input test image $X$ is first projected using weight matrix $W$ to get the semantic representation $H$ and then the test class is decided by
-\begin{equation}
-	\min_i D(S_i, H),
-\end{equation}
-where $D$ is the distance function, which can be the negative cosine similarity or the Euclidean distance, We find that cosine similarity in general gives higher classification accuracy than the Euclidean distance does. We use the former in our experiments.
+\begin{align}
+	\hat{c} = \textrm{arg} \min_c \textrm{dist}(\bb{t}^c, \bb{h}),
+\end{align}
+where dist is the distance function, which can be the negative cosine similarity or the Euclidean distance, We find that cosine similarity in general gives higher classification accuracy than the Euclidean distance does. We use the former in our experiments.
 
 
 % ---------------------------------------------------------
