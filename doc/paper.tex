@@ -7,10 +7,10 @@
 % to avoid loading the natbib package, add option nonatbib:
 % \usepackage[nonatbib]{nips_2016}
 
-% \usepackage{nips_2016}
+% \usepackage{nips_2017}
 
 % to compile a camera-ready version, add the [final] option, e.g.:
-\usepackage[final]{nips_2016}
+\usepackage[final]{nips_2017}
 
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
@@ -61,32 +61,29 @@
 }
 
 \begin{document}
-% \nipsfinalcopy is no longer used
 
 \maketitle
 
-%\begin{abstract}
-
-%	This is a 4-page draft.
-
-%\end{abstract}
-
-
+\begin{abstract}
+In Zero-shot learning(ZSL), how to learn discriminative features for fine-grained classes is a main challenge. In this paper, we propose a novel model: semantic adversarial autoencoder(SAAE) to solve ZSL problem. This approach is based on a semantic autoencoder(SAE), which projects image representation onto the space of semantic features. We incorporate a discriminator for semantic representations to  strengthen the discriminative power of the model. The result of experiments on two standard datasets shows that our model is able to outperform other baseline models, especially in generalized ZSL scenario. 
+\end{abstract}
 
 % ----------------------------------------------------
 % ----------------------------------------------------
 
 \section{Introduction}
 
-Zero-shot learning has been a hot research topic in the field of image classification. It simulates how people learn things: when people see an unfamiliar object, we would like to use our existing knowledge and try to evaluate the new object. Ideally, a large-scale image classification system should be able to recognize novel categories based on its previous training experience. One of the main challenges for object recognition is the lack of sufficient annotations for all possible concepts. This problem becomes even more severe when we target at the task of fine-grained classification because the annotation is more expensive and the number of fine-grained classes is huge. Realizing this limitation, researchers resort to additional information, for example attributes or text, to solve this problem.  
+Zero-shot learning has been an active research topic in the field of image classification. It simulates how people learn things: when people see an unfamiliar object, they use existing knowledge and try to evaluate the new object. Ideally, a large-scale image classification system should be able to recognize novel categories based on its previous training experience. One of the main challenges for object recognition is the lack of sufficient annotations for all possible concepts. This problem becomes even more severe when we target at the task of fine-grained classification because the annotation is more expensive and the number of fine-grained classes is huge. Realizing this limitation, researchers resort to additional information, for example, textual description, to solve this problem.  
 
-On the other hand, autoencoder has shown its great express power to present complicate distributions such human faces, natural sceneries and natural language. Autoencoder is able to convert complicated real world data distributions, e.g. text features, to very well-formed low dimension. Many studies have shown that after applying autoencoder techniques, the learned latent feature space often has clear semantic meanings. For example, in \cite{makhzani2015adversarial}, all the digits can be well embedded into a low-dimensional manifold such that similar digits will have smaller distance within that manifold.
+On the other hand, autoencoder has shown its great express power to present complicate distributions such human faces, natural sceneries and natural language. It is able to convert complicated real world data distributions, e.g. text features, to very well-formed low dimension. Many studies have shown that after applying autoencoder techniques, the learned latent feature space often has clear semantic meanings. For example, in \cite{makhzani2015adversarial}, all the digits can be well embedded into a low-dimensional manifold such that similar digits will have smaller distance within that manifold.
 
  \par 
 
-The fundamental problem of zero-shot learning is to extract semantically meaningful feature embeddings that could bridge the gap between similar image/text features and fine-grained classes. Autoencoder becomes an ideal option for this task because it can automatically learn important features. In \cite{kodirov2017semantic}, they present a novel solution to zero-shot learning based on learning a Semantic AutoEncoder(SAE). Taking the encoder-decoder paradigm, an encoder aims to project a visual feature vector into the semantic space as in the existing zero-learning shot models and the decoder should be able to reconstruct the original visual feature. Their results show that under this framework, the learned projection function from the seen classes is able to generalize better to the new unseen classes. One shortcoming of this model is that the encoder tends to learn similar features across multiple classes, which is disappointing for the task of fine-grained classification. 
+The fundamental problem of ZSL is to extract semantically meaningful feature embeddings that could bridge the gap between similar image/text features and fine-grained classes. Autoencoder becomes an ideal option for this task because it can automatically learn important features. In \cite{kodirov2017semantic}, they present a novel solution to zero-shot learning--Semantic AutoEncoder(SAE). Taking the encoder-decoder paradigm, an encoder aims to project a visual feature vector into the semantic space as in the existing zero-learning shot models and the decoder should be able to reconstruct the original visual feature. Their results show that under this framework, the learned projection function from the seen classes is able to generalize better to the new unseen classes. One shortcoming of this model is that the encoder tends to learn similar features across multiple classes, which is disappointing for the task of fine-grained classification. 
 
-Inspired by these models, we propose an Adversarial Semantic AutoEncoder(ASAE). In our model, we have an encoder that projects a visual feature vector into the semantic space and a decoder that decodes and reconstructs the original visual features. Besides, we incorporates a discriminator as in \cite{makhzani2015adversarial} to ensure that generating from any part of prior space results in meaningful samples. Two types of discriminators will be discussed in this project, one is independent from semantic space and the other is dependent from semantic space. 
+Inspired by these models, we propose an Semantic Adversarial AutoEncoder(SAAE). In our model, we have an encoder that projects a visual feature vector into the semantic space and a decoder that decodes and reconstructs the original visual features. Besides, we incorporates a discriminator as in \cite{makhzani2015adversarial} to ensure that generating from any part of prior space results in meaningful samples.
+
+Two types of discriminators will be discussed in this project, one is independent from semantic space and the other is dependent from semantic space. 
 
 % In this project we plan to explore how to develop an effective transfer learning algorithm, with focus on zero-shot learning and its combination with several popular deep learning methods, such as convolutional neural network, attention models, and Adversarial training, to detect unseen objects only with text description. \\
 % Zero-shot learning consists in learning how to recognize new concepts by just having a description of them. State-of-the-art methods for zero-shot recognition formulate learning as a embedding problem of images and side information like text \cite{Elhoseiny2013}. We propose a model that can classify unseen categories from their textual description. Inspired by the fact that there is little supervision on text data, certain noise-cancelling techniques could be applied to improve the performance of our model.\\
@@ -157,31 +154,37 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-\section{Zero-shot learning task}
-
-	We aim to solve the zero-shot learning problem of classifying images of unseen classes. Given the training images $\bb{x}^c$ and their corresponding text description documents $\bb{t}^c$ for $N_s$ seen classes $c$, we learn the semantic encodings $\bb{h}^c$ of the images. The learning goal is to learn the encodings $\bb{h}^c$ for a class that are close to their corresponding text document representation for this class. The encodings $\bb{h}^{c_1}$ and $\bb{h}^{c_2}$ from two different classes should bear some separable differences.
-	
-	During the test time, we are given images $\bb{x}^c$ of $N_{us}$ unseen classes $c$ and also their text description documents $\bb{t}^c$, but without the prior knowledge of the correspondence between the images and the text documents. Our task is to predict the corresponding text document given an image.
-
-
+\section{Semantic Adversarial Autoencoder}	
+    
+\subsection{Adversarial Autoencoder}
+Adversarial autoencoder\cite{makhzani2015adversarial} is an antoencoder with a generator and a discriminator. In addition, a prior is chosen to regularize the hidden representation of the input data. During training time, the generator can generate positive samples given the prior, and the discriminator aims to discriminate the positive samples from the generator and the negative samples from the hidden layer of the autoencoder. This model structure often contributes to a clear boundary of the learned representations by simultaneously minimizing the reconstruction loss from a plain autoencoder, the loss of misclassifying negative samples from the discriminator, and the loss of failing to generate positive samples from the generator.
 
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-\section{Adversarial autoencoder for zero-shot learning}
-
-	We propose two architectures that make use of adversarial autoencoders for the zero-shot learning tasks. In one of them we draw positive samples from the prior that is a Gaussian noise, and explicitly require the encoding $\bb{h}^c$ to match the text representation $\bb{t}^c$. In this case, the prior serves as a regularizer, which is presented in Sec.~\ref{subsec:NoisePrior}. In the other of them, we directly use the text representation as positive samples drawn from some distribution that describes a class of data, and the code is trained by the adversarial net to match the text representation. In this case, the prior guides the generator (the encoder) to learn the code that is close to the semantic representation of text, which is presented in Sec.~\ref{subsec:TextPrior}.
+\subsection{Autoencoder models for ZSL}
+Our SAAE model is an extension of semantic autoencoder(SAE)\cite{kodirov2017semantic}. In SAE, the inputs are the image features X and the attribute representations S of the corresponding class. The original optimization problem of the SAE is
+    \begin{equation}
+    \min_{W} || \bb{x} - W^{\top} W \bb{x} ||_2^2, \quad \text{s.t.} \;\; W \bb{x} = \bb{s},
+    \end{equation}
+   where W is the parameter in the autoencoder. This model enforces the hidden representation of images in the autoencoder to mimic the corresponding semantic representation. The loss is further relaxed to  
+   \begin{equation}
+   L_{\textrm{SAE}} = || \bb{x} - W^{\top} \bb{s}||_2^2 + \lambda || W \bb{x} - \bb{s} ||_2^2,
+    \end{equation}
+where a matching coefficient $\lambda$ is introduced here to control the importance of matching semantic space representation. (2) is a globally convex function, thus W can be solved via Bartels-Stewart algorithm\cite{lu1971solution}. 
+    
+    Based on SAE, We propose two architectures, explicit SAE and implicit SAE, which incorporate the idea of adversarial autoencoder. In one of them we draw positive samples from a Gaussian prior, and explicitly require the encoding $\bb{h}^c$ to approximate the semantic representation $ \bb{t}^c$. In this case, the prior serves as a regularizer, which is presented in Sec.~\ref{subsec:NoisePrior}. In the other, we directly use the text representation as positive samples drawn from some distribution that describes a class of data, and the code is trained by the adversarial net to match the text representation. In this case, the prior guides the generator (the encoder) to learn the code that is close to the semantic representation of text, which is presented in Sec.~\ref{subsec:TextPrior}.
 
 
 
 % ----------------------------------------------------
 
-\subsection{Prior as regularizer}
+\subsection{SAAE-exp}
 \label{subsec:NoisePrior}
 	
-	The architecture in Figure \ref{fig:Architecture} (a) has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
+	The explicit SAAE\ref{fig:Architecturea} has an autoencoder that learns the encoding $\bb{h}^c$ of the input images $\bb{x}^c$ belonging to a class $c$. The code $\bb{h}^c$ is explicitly required to match the text representation $\bb{t}^c$ of that class, as well as regularized by the prior in the adversarial net. The learning task can be expressed as the optimization problem,
 	\begin{align}
-		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
+   L_{semantic} + \min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) + || G(\bb{x}) - \bb{t} ||_2^2 \;\right].
 	\end{align}
 	The computational details are given in the Supplementary.
 
@@ -189,18 +192,20 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 
 % ---------------------------------------------------------
 
-\begin{figure*}[t!]
+\begin{figure*}[hbt!]
     \centering
     \begin{subfigure}[t]{0.5\textwidth}
         \centering
-        \includegraphics[height=1.65in]{figNoisePrior}
+        \includegraphics[height=2.30in]{fig1}
         \caption{}
+            \label{fig:Architecturea}
     \end{subfigure}%
     ~ 
     \begin{subfigure}[t]{0.5\textwidth}
         \centering
-        \includegraphics[height=1.65in]{figTextPrior}
+        \includegraphics[height=2.30in]{fig2}
         \caption{}
+                    \label{fig:Architectureb}
     \end{subfigure}
     \caption{Adversarial autoencoders with (a) Gaussian prior and explicit matching to the text representation, and (b) text representations as positive samples drawn from some underlying prior of text distribution.}
     \label{fig:Architecture}
@@ -209,139 +214,177 @@ Apart from handcrafting attributes, another scheme is to directly use the online
 % ----------------------------------------------------
 
 
+% ----------------------------------------------------
 
-	Similar architecture has been proposed in \cite{kodirov2017semantic}, in which the explicit matching to the text representation was used to learn the semantic autoencoder for the image input. The difference in our architecture is that we use a adversarial net to regularize the matching to the text representation.
+\subsection{SAAE-imp}
+\label{subsec:TextPrior}
+	
+	The implicit SAAE \ref{fig:Architectureb} takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form as the standard adversarial autoencoder,
+	\begin{align}
+   L_{semantic} + \min_{G} \max_D E_{\bb{t} \sim r(\bb{t})}\left[\; \log D(\bb{t}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) \;\right],
+	\end{align}
+	except that the prior serves as a guide to match the text distribution rather than as a regularizer that drives the encoding to match a Gaussian noise.
+
+
+% ----------------------------------------------------
+
+\subsection{SAE-GAN}
+
+	We also check whether adding GAN to the original architecture of SAE will change the performance of SAE. We solve the following optimization problem,
+	\begin{align}
+		\min_{G} \max_D E_{\bb{z} \sim r(\bb{z})}\left[\; \log D(\bb{z}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G_{\textrm{SAE}}(\bb{x})) ) + L_{\textrm{SAE}} \;\right],
+	\end{align}
+	where
+	\begin{align}
+		G_{\textrm{SAE}}(\bb{x}) = W \bb{x}.
+	\end{align}
+
 
 
 
 % ----------------------------------------------------
 
-\subsection{Prior as guide}
-\label{subsec:TextPrior}
-	
-	In Figure \ref{fig:Architecture} (b) we show the adversarial autoencoder that takes the text representation $\bb{t}^c$ as the positive sample drawn from some underlying prior dictating the distribution of the text representation of a class. In this architecture, the code is driven to match the text representation through the adversarial net itself. The optimization problem for this learning scheme is of the same form of the standard adversarial autoencoder,
-	\begin{align}
-		\min_{G} \max_D E_{\bb{t} \sim r(\bb{t})}\left[\; \log D(\bb{t}) \;\right] + E_{\bb{x} \sim p_d(\bb{x})}\left[\; \log( 1 - D(G(\bb{x})) ) \;\right],
-	\end{align}
-	except that the prior serves as a guide to match the text distribution rather than as a regularizer that drives the code to a Gaussian noise.
+\subsection{Classification task}
+
+	There are two scenarios for ZSL in image classification, namely standard ZSL and generalized ZSL. During training time, given training images $\bb{x}^c$ and their corresponding semantic representations $\bb{t}^c$ for $N_s$ seen classes $c$, the model learns to bridge the gap between $x^c$ and $t^c$. 
+    
+	During testing time, for standard ZSL, we are given images $\bb{x}^{uc}$ from $N_{us}$ unseen classes and semantic representations $\bb{t}^{uc}$ for those unseen classes without knowing the correspondence between $\bb{x}^{uc}$ and $\bb{t}^{uc}$. The task is to determine which unseen class each image belongs to. For generalized ZSL, the test images are not constrained to unseen classes: images from both seen and unseen classes can be used as test images and semantic representations for both classes should be provided.
+
+During testing time, we follow the same classification method as in \cite{kodirov2017semantic}. The input test image $X$ is first projected using weight matrix $W$ to get the semantic representation $H$ and then the test class is decided by
+\begin{equation}
+	\min_i D(S_i, H),
+\end{equation}
+where $D$ is the distance function, which can be the negative cosine similarity or the Euclidean distance, We find that cosine similarity in general gives higher classification accuracy than the Euclidean distance does. We use the former in our experiments.
+
+
+% ---------------------------------------------------------
+
+\section{Datasets}
+
+We conduct our experiments on two datasets. The first one is the Caltech-UCSD Birds 200-2011 dataset \cite{wah2011caltech}, with 200 categories of bird images. The total number of images is 11,788, and each class consists of about 40 to 80 images. The second dataset is AwA \cite{lampert2014attribute}, which consists of 30,475 images of 50 classes of animals.
+
+Following the preprocessing steps taken in \cite{kodirov2017semantic}, for CUB dataset, we extract the 1024D activation from last pooling layer of Inception-v1 \cite{szegedy2015going} as our image features. For AwA dataset, we use the extracted 1024D features provided by \cite{kodirov2017semantic}. We use the attribute vector of each class as the semantic representation of the class. The dimensions of the attribute vectors are 312 and 85 for the CUB and AwA datasets, respectively.
+
+For the standard ZSL tasks, following the description of \cite{kodirov2017semantic}, we withhold 10 and 50 classes as the unseen classes for AwA and CUB datasets, respectively. For the generalized ZSL tasks on the CUB dataset, we follow the description of \cite{Xian2017}%
+\footnote{Since we do not have the information about the details of the splitting but only the number of instances in each split, we only follow roughly there number of instances used in each split, but not the exactly same split.}%
+, using 7,125 training images from the 150 seen classes, and 4,663 test images from both 150 seen and 50 unseen classes. On the AwA dataset, we use 19,094 training images from the 40 seen classes, and 11,381 test images from both 40 seen and 10 unseen classes.
+
+When we run our experiments, the image features and the attribute vectors are both normalized to $[0, 1]$ over the entire dataset.
 
 
 
+% ---------------------------------------------------------
+
+\section{Experiments}
+
+We compare the results of our models with the Semantic Autoencoder (SAE) \cite{kodirov2017semantic}, the Joint Latent Semantic Embedding (JLSE) \cite{zhang2016zero}, and the Synthesized classifiers (Sync) \cite{changpinyo2016synthesized}. Due to the lack of an identical dataset, we decide to re-implement SAE to produce a reasonable baseline. It is worth noting that our implementation of SAE differs from that of \cite{kodirov2017semantic} in that we solve the optimization problem by gradient descent%
+\footnote{We use the AdaGrad optimizer of TensorFlow.}%
+in its original form, while in \cite{kodirov2017semantic} the problem is solved by first transforming it into a simpler linear equation. We find that the classification accuracy of the standard ZSL tasks using our implementation of SAE on both CUB and AwA datasets is lower than that reported in \cite{kodirov2017semantic} (see Table \ref{tab:StandardZSL}). Although we cannot reproduce the results in \cite{kodirov2017semantic}, we implement our models in the same framework which we use for implementing SAE, in the following discussion, we will therefore focus on comparing our results with our own implementation of SAE for self consistency. Table \ref{tab:StandardZSL} and \ref{tab:GeneralizedZSL} show the experimental results as well as the accuracy reported in \cite{kodirov2017semantic}.
 
 
 
-
-
-
-
-%	We propose to generalize this basic structure to fulfill the zero-shot learning task. In addition to the basic structure of the adversarial autoencoder, we include a domain transfer function $T$. Given the code $\bb{h}^c$ of an image $\bb{x}^c$ coming from a class $c$, the transfer function transforms $\bb{h}^c$ into its corresponding text-domain feature $\bb{\tau}^c = T(\bb{h}^c) = T(f_{enc}(\bb{x}^c))$. We denote the distribution of $\bb{\tau}^c$ as $\bb{\tau}^c \sim s(\bb{\tau}^c | \bb{h}^c, T)$, and the distribution of the actual text in this class as $\bb{t}^c \sim u^c(\bb{t}^c)$. Then, during training, we learn the domain transfer function $T$ such that $s(\bb{\tau}^c | \bb{h}^c, T) \rightarrow u^c(\bb{t}^c)$; that is, the encoded-then-transformed $\bb{\tau}^c$ is similar to $\bb{t}^c$.
-	
-% 	We propose a novel architecture that jointly learn the the encoding function $f_{enc}$ and the domain transfer function $T$ simultaneously. We adopt the paradigm of the adversarial autoencoder, but instead of using the encoder as the generator, the generator here is the hierarchical structure consisting of the encoder and the domain transfer function, which generates (negative) samples from the distribution $s(\bb{\tau}^c | \bb{h}^c, T)$. The discriminator is trained to classify the actual text $\bb{t}^c$ generated from $u^c(\bb{t}^c)$ (the prior) as positive sample, and the text feature $\bb{\tau}^c$ transferred from the image according to the distribution $s(\bb{\tau}^c | \bb{h}^c, T)$ (that is, $\bb{\tau}^c$ generated by the generator) as negative sample. Note that each class $c$ has its own distinct prior $u^c$. The encoder is in the mean time trained with the decoder to minimize the reconstruction error.
-	
-% 	During the test time of the zero-shot learning, an unseen test image $\bb{x}$ is given. We feed it into the encoder and the domain transfer function to obtain the text feature $\bb{\tau}$. Then, by computing its similarities to each of the unseen-class actual texts $\bb{t}^1, \bb{t}^2, \dots$, we take the most similar class as the class prediction for this image.
-	
-% % \noindent\rule{\textwidth}{0.4pt}
-
-
-
-% % ----------------------------------------------------
-
-% \subsection{Another possible learning scheme}
-	
-% 	We consider train the network in two stages: a pre-training to obtain the prior, and then a training of adversarial autoencoder using the pre-trained prior.
-	
-% 	In the first stage, we learn the domain transfer function, the matrix $W$. (Do we need to use the decoder part of the autoencoder here?) Method: For images $\bb{x}^c_i$ belonging to class $c$, and a text $\bb{t}^c$ in this class, we jointly learn an encoder $W_{enc}$, such that
-% 		\begin{align}
-% 			\min_{W_{enc}, W} || \bb{h}^c - W \bb{t}^c ||_2^2,
-% 		\end{align}
-% 		where
-% 		\begin{align}
-% 			\bb{h}^c = \sigma( W_{enc} \bb{x}^c ).
-% 		\end{align}
-% 		If we also use decoder part, it will be
-% 		\begin{align}
-% 			\min_{W_{enc}, W} \alpha || \bb{h}^c - W \bb{t}^c ||_2^2 + \beta [ -(\bb{x}^c)^{\top} \log ( W_{enc}^{\top} \bb{h}^c ) ].
-% 		\end{align}
-
-% 	In the second stage, we train the adversarial autoencoder with
-% 		\begin{enumerate}
-% 			\item $W_{enc}$ initialized by the pre-trained $W_{enc}$ in first stage. It serves as the generator of the adversarial network.
-% 			%
-% 			\item A class-wise prior
-% 				\begin{align}
-% 					p^c(\bb{h}^c) = \mathcal{N}( W \bb{t}^c, ( \sigma^{(c)} )^2 I ).
-% 				\end{align}
-% 		\end{enumerate}
-% 		The goal in this stage is to learn (fine tune) the autoencoder $W_{enc}$,
-% 		\begin{align}
-% 			\min_{W_{enc}} [ -(\bb{x}^c)^{\top} \log ( W_{enc}^{\top} \bb{h}^c ) ],
-% 		\end{align}
-% 		with the class-wise prior.
-
-% 	In predict time, for a test image $\bb{x}$, compute its code $\bb{h} = \sigma(W_{enc} \bb{x})$. Then predict its belonging text $\bb{t}^*$ among the candidate (unseen-class text) $\{ \bb{t}^1, \bb{t}^2, \dots \}$ by computing $\{ || \bb{h} - W \bb{t}^1 ||_2^2, || \bb{h} - W \bb{t}^2 ||_2^2, \dots \}$ and select the $\bb{t}^c$ of the minimum one as the $\bb{t}^*$.
-
-
-
-
-
-\section{Dataset Description and Baseline Models}
-
-The dataset we want to use for this project is the Caltech-UCSD Birds 200-2011 data\cite{wah2011caltech}. There are 200 categories of birds. The number of images is 11,788, and the image dimension is 500 $\times$ [300--500] $\times$ 3. Each class consists of between 40 and 80 images. 
-
-Here we also list the baseline models we want to compare out result with. They are Semantic Autoencoder(SAE)\cite{kodirov2017semantic}, Joint Latent Semantic Embedding(JLSE)\cite{zhang2016zero}, and Synthesized classifiers(Sync)\cite{changpinyo2016synthesized}. According to \cite{kodirov2017semantic}, the performance of the baseline models are reported as follows:
 \begin{table}[!htb]
- \centering
- \begin{tabular}{|l|l|}
-  \hline
-  Model & Results \\
-  \hline
-  SAE\cite{kodirov2017semantic} & 61.4 \\
-  \hline
-  JLSE\cite{zhang2016zero} & 41.8 \\
-  \hline
-  Sync\cite{changpinyo2016synthesized} & 54.4 \\
-  \bottomrule
- \end{tabular}
- \caption{Performance of baseline models.}
+\centering
+\begin{tabular}{lrr}
+\toprule
+ & CUB & AwA \\
+\midrule
+SAAE-exp & 10.3 & 64.6 \\
+SAAE-imp & 2.0 & 14.4 \\
+SAE-dir & \bf{60.2} & 77.0 \\
+SAE-GAN & 5.7 & \bf{78.5} \\
+\midrule
+SAE \cite{kodirov2017semantic} & 61.4 & 84.7 \\
+JLSE \cite{zhang2016zero} & 41.8 & 80.5 \\
+Sync \cite{changpinyo2016synthesized} & 54.4 & 72.9 \\
+\bottomrule \\
+\end{tabular}
+\caption{Top-1 per-class accuracy (\%) of ZSL. SAAE-exp and SAAE-imp are the semantic adversarial autoencoder using Gaussian and attribute as priors, respectively. SAE-dir is our implementation of SAE which directly solve the optimization problem in its original form.}
+\label{tab:StandardZSL}
+\end{table}
+
+\begin{table}[!htb]
+\centering
+\begin{tabular}{lrr}
+\toprule
+ & CUB & AwA \\
+\midrule
+SAAE-exp & \bf{17.8} & \bf{60.0} \\
+SAAE-imp & 0.5 & 2.4 \\
+SAE-dir & 7.0 & 53.8 \\
+SAE-GAN & 6.9 & 54.0 \\
+\bottomrule \\
+\end{tabular}
+\caption{Top-1 per-class accuracy (\%) of generalized ZSL. SAAE-exp and SAAE-imp are the semantic adversarial autoencoder using Gaussian and attribute as priors, respectively. SAE-dir is our implementation of SAE which directly solve the optimization problem in its original form.}
+\label{tab:GeneralizedZSL}
+\end{table}
+
+In the experiments of SAAE with explicit matching, the coefficients of the matching, reconstruction, and GAN terms are all set to 1. We run for 100 epochs, and report the result top-1 per-class accuracy using negative cosine similarity as the distance at test time. The mean and standard deviation of the Gaussian priors are set to be the mean and standard deviation of the attributes of the dataset.
+
+In the experiments of SAAE with implicit matching, the coefficient of the reconstruction term is 10 and that of the GAN is 1. We run for 100 epochs, and report the result top-1 per-class accuracy using negative cosine similarity as the distance at test time.
+
+In the experiments of our implementation of SAE, we find that better performance is given when the coefficient of the matching loss is 100 and that of the reconstruction loss is 1. This indicates that the performance of SAE is mostly driven by the direct matching between the encoded representation from the image and the attribute vector, and is only marginally driven by the autoencoder.
+
+%(wrong) the coefficients of the matching loss and the reconstruction loss are both set to 1. We run for 100 epochs, and report the result top-1 per-class accuracy using negative cosine similarity as the distance at test time.
+
+We find that on the CUB dataset, SAAE with explicit matching achieves the best accuracy in both standard and generalized ZSL tasks. On the AwA dataset, our SAE implementation gives the best accuracy on both standard and generalized ZSL tasks.
+
+
+
+% ----------------------------------------------
+
+\section{Discussion}
+
+% \subsection{SAE}
+
+% In the experiment of our implementation of SAE, we find that the best results are achieved when the coefficients of the matching loss and the reconstruction loss are both set to 1 (compared to having much larger coefficient of the matching loss)
+
+
+% One thing to notice is that the result of SAE is heavily affected by the $\lambda$ in the equation. If we set the $\lambda$ to be 1, the accuracy will stay around 5\% for AWA dataset. The result will only become close to the best result we have when the $\lambda$ is set to around 100000. After incorporating the adversarial part, the choice of $\lambda$ no longer matters: the accuracy will become close the the best result even we set the $\lambda$ to be 1. 
+
+
+
+\subsection{SAAE-exp}
+Our extension with adding adversarial part for the autoencoder does not improve the accuracy for the strict ZSL scenario. We experiment with a lot of other settings, such as adding more layers for autoencoder, changing the hidden dimensions of generator and discriminator for adversarial part, and different sampling strategies, such as sampling from hidden state to produce negative samples, as described in \cite{makhzani2015adversarial} section 2. None of them give any performance boost. 
+
+We suspect the reason could be two-folded. The first reason is that the semantic features plays the essential role to the model. We also try ablation study that does not include the semantic space as constraints. In this case the model is just slightly better than random guess. This is expected since ZSL task usually deals with fine-grained image classification, and without the additional semantic space input, the models trained only based on image features are likely to have a poor result. However, the only way we figure out to incorporate the semantic features into the adversarial autoencoder is to minimize the l2 loss between the hidden state of the encoder and the semantic representation, and this major constraint bound the accuracy of the model. 
+
+The second possible reason is that the prior is hard to pick for the semantic distribution. The prior serves to regularize the encoded samples so that the hidden state of an encoder is similar to the prior distribution we choose. In normal cases, for example alignDraw\cite{mansimov2015generating}, gaussian prior works fine. However, in out scenario, the output from encoder has to be close to the semantic space, thus our chosen prior has to resemble the distribution of the semantic space. As discussed before, the semantic space is the probability that one attribute appears in this class. If we view the attributes in the space of all possible classes, this is similar to a multinomial distribution. However, changing gaussian prior to multinomial distribution also does not work well. 
+
+The SAAE-exp model performs the best in generalized classification task. We think this is as expected due to the nature of our task. Adversarial autoencoder is proposed to regularize the class distribution with a shape. This regularized shape is even more important in fine-grained classification task we are dealing with, where the difference of classes is very subtle. The regularized shape can give a better split between different classes, and this will help improve the classification accuracy in generalized ZSL scenario.
+
+\subsection{SAAE-imp}
+
+We observe that the classification accuracy using SAAE with the attribute as the prior is very low in all experiments. The reason is that using attribute vectors as the prior only encourages the encoding to have the same distribution as that of the attributes, but not educating the encoder to learn how to generate the encoding such that each component of the encoding can best match its corresponding component of the attribute vector. Since each component of the attribute vector has very specific meaning, and at test time we predict the class label by matching each component of the given attribute vector with the corresponding component of the encoding generated from the test image, lacking the ability to correctly predict each component of the attribute vector leads to the poor performance of this approach.
+
+
+\subsection{SAE-GAN}
+
+By adding GAN on top of the SAE, we find that on the AwA dataset it improves the accuracy, but on the CUB dataset it does not. For the standard ZSL on the AwA dataset, in which GAN makes the most significant improvement, we conduct more detailed experiments to check how accuracy changes by using different coefficients for the GAN. The results are shown in Table \ref{tab:SAEGAN}. We observe that with suitable coefficient, GAN slightly improves the accuracy, but if the coefficient of GAN is too large, it harms the performance.
+
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+GAN coefficient & $10^{-1}$ & $10^{-2}$ & $10^{-3}$ & $10^{-4}$ & 0 \\
+Accuracy (\%) & 35.4 & 76.7 & 78.5 & 77.7 & 77.0 \\
+\bottomrule \\
+\end{tabular}
+\caption{The top-1 per-class accuray of the standard ZSL on the AwA dataset, using different coefficients for the GAN in SAE-GAN.}
+\label{tab:SAEGAN}
 \end{table}
 
 
-
-
-
-
 % ----------------------------------------------------
 % ----------------------------------------------------
 
-%\section{Data}
+\section{Conclusion}
 
-%	We use two datasets: The Caltech-UCSD Birds 200 (2010) dataset \cite{Welinder2010}, and the Oxford VGG 102 category flower dataset \cite{Nilsback2008}. The Birds dataset has class number 200, feature dimension 500 $\times$ [300--500] $\times$ 3, and the size of the dataset is 6033. The bird images belonging to 200 species. Each class consists of between 20 and 40 images, with total of 6033 color images in jpeg format.
-	
-%	The Oxford VGG 102 category flower dataset has class number 102, feature dimension [500--600] $\times$ 500 $\times$ 3, and the size of the dataset is 8189. The flower images belonging to 102 categories. Each class consists of between 40 and 258 images, with total of 8189 color images in jpeg format.
+In this paper, we proposed to use the adversarial antoencoder framework incorporating semantic features as a solution to ZSL problem. Our method named semantic adversarial autoencoder(SAAE) projects the image representation into the semantic feature space with a discriminator matching the projection to a given prior. It achieves comparable accuracies on AWA and CUB datasets, especially in the generalized ZSL scenario. We also demonstrate that this new SAAE model is more robust than existing SAE model through extensive experiments. 
 
 
-
-
-
-
-% ----------------------------------------------------
-% ----------------------------------------------------
-
-%\section{Discussion}
-
-% 	The architecture proposed in this work can also be applied to image generation from text. By applying the inverse domain transfer function to a given text, $T^{-1}(\bb{t})$ can be taken as the code $\bb{h}$, which can then be fed into the decoder to obtain the image $\bb{x}$.
-
-
-
-% ----------------------------------------------------
-% ----------------------------------------------------
-
-%\subsubsection*{Acknowledgments}
-
-%Use unnumbered third level headings for the acknowledgments. All acknowledgments go at the end of the paper. Do not include acknowledgments in the anonymized submission, only in the final paper.
-
-
-
+\newpage
 % ----------------------------------------------------
 % ----------------------------------------------------
 
